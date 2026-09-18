@@ -109,9 +109,9 @@ input, select, textarea { font: inherit; }
   max-width: 460px;
   z-index: 40;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2px;
-  padding: 8px 10px calc(var(--safe-bottom) + 10px);
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  padding: 8px 6px calc(var(--safe-bottom) + 10px);
   background: linear-gradient(180deg, rgba(16, 8, 16, 0.4), rgba(16, 8, 16, 0.97) 45%);
   backdrop-filter: blur(18px);
   border-top: 1px solid var(--line);
@@ -133,13 +133,13 @@ input, select, textarea { font: inherit; }
   position: relative;
   transition: color 0.15s ease, background 0.15s ease;
 }
-.nav button .nav-icon { font-size: 19px; line-height: 1; filter: grayscale(0.55) opacity(0.8); }
+.nav button .nav-icon { font-size: 18px; line-height: 1; filter: grayscale(0.55) opacity(0.8); }
 .nav button.active { color: var(--ink); background: var(--surface); }
 .nav button.active .nav-icon { filter: none; }
 .nav .badge {
   position: absolute;
   top: 3px;
-  right: calc(50% - 20px);
+  right: calc(50% - 19px);
   min-width: 17px;
   height: 17px;
   padding: 0 4px;
@@ -231,7 +231,7 @@ input, select, textarea { font: inherit; }
 /* ---------- swipe deck ---------- */
 .deck {
   position: relative;
-  height: min(60vh, 460px);
+  height: min(56vh, 440px);
   margin-top: 12px;
   touch-action: pan-y;
 }
@@ -627,3 +627,19 @@ input, select, textarea { font: inherit; }
   color: #fff;
 }
 .photo-tools button:disabled { opacity: 0.3; cursor: default; }
+
+.occasion-ribbon {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  max-width: 58%;
+  padding: 7px 11px;
+  border-radius: 13px;
+  background: rgba(10, 4, 11, 0.62);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 196, 107, 0.45);
+  color: #ffdca6;
+  font-size: 11.5px;
+  font-weight: 650;
+  line-height: 1.25;
+}

@@ -42,6 +42,7 @@ export function makePerson(draft: PersonDraft): Person {
     ageMax: draft.ageMax ?? draft.age + 8,
     maxDistanceKm: draft.maxDistanceKm ?? 60,
     createdAt: draft.createdAt ?? Date.now(),
+    seeking: draft.seeking,
     managed: draft.managed,
     circle: draft.circle,
   }

@@ -62,6 +62,8 @@ export interface Person {
   ageMax: number
   maxDistanceKm: number
   createdAt: number
+  /** Something this person is also hoping to find a date for. */
+  seeking?: { kind: OccasionKind; note: string }
   /** Present when this profile lives on your roster. */
   managed?: ManagedInfo
   /**
@@ -85,6 +87,71 @@ export interface Circle {
 
 /** The circle id used for the profiles you manage yourself. */
 export const MY_CIRCLE = 'mm_you'
+
+/** The kind of thing someone needs a date for. */
+export type OccasionKind =
+  | 'wedding'
+  | 'double-date'
+  | 'party'
+  | 'family'
+  | 'trip'
+  | 'activity'
+
+/** How the night is going to feel, which decides who fits it. */
+export type Vibe = 'low-key' | 'big-night' | 'family-heavy' | 'adventure'
+
+/** Someone else who's already going — a friend, a partner, the other half of a double date. */
+export interface Companion {
+  name: string
+  /** "My girlfriend", "Me", "My brother and his wife". */
+  relationship: string
+}
+
+/**
+ * A specific thing someone needs a date for: a wedding, a double date with
+ * you and your partner, two tickets going spare on Friday.
+ */
+export interface Occasion {
+  id: string
+  /** The roster profile who'd be going. */
+  profileId: string
+  kind: OccasionKind
+  title: string
+  /** ISO date (yyyy-mm-dd). Empty when it's a standing "sometime soon". */
+  date: string
+  city: string
+  vibe: Vibe
+  /** Dress code, who'll be there, what to expect. */
+  details: string
+  /** Who else is coming — the couple in a double date. */
+  companions: Companion[]
+  /** Set by their matchmaker, not the person. */
+  byMatchmaker: boolean
+  open: boolean
+  createdAt: number
+}
+
+export type InviteStatus = 'pending' | 'accepted' | 'declined'
+
+/** An ask to be someone's date for one occasion. */
+export interface Invite {
+  id: string
+  occasionId: string
+  profileId: string
+  targetId: string
+  status: InviteStatus
+  /** Blended score: general compatibility plus how well they fit the occasion. */
+  score: number
+  /** The occasion-fit half on its own. */
+  fit: number
+  byMatchmaker: boolean
+  note?: string
+  sentAt: number
+  /** When their answer arrives. */
+  revealAt: number
+  /** Their line when they answer. */
+  reply?: string
+}
 
 export interface ManagedInfo {
   /** 'self' when it's your own profile, otherwise someone you're setting up. */
@@ -140,6 +207,10 @@ export type NotificationKind =
   | 'match'
   | 'matchmaker-swipe'
   | 'profile-added'
+  | 'occasion'
+  | 'invite'
+  | 'invite-accepted'
+  | 'invite-declined'
   | 'tip'
 
 export interface AppNotification {
@@ -151,6 +222,8 @@ export interface AppNotification {
   read: boolean
   profileId?: string
   matchId?: string
+  occasionId?: string
+  inviteId?: string
 }
 
 export interface AppState {
@@ -165,6 +238,8 @@ export interface AppState {
   swipes: Swipe[]
   pending: PendingLike[]
   matches: Match[]
+  occasions: Occasion[]
+  invites: Invite[]
   notifications: AppNotification[]
   /** The roster profile you're currently swiping for. */
   activeProfileId: string | null

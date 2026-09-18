@@ -21,7 +21,10 @@ export function decideReciprocal(profileId: string, targetId: string, score: num
 
 export interface DeckEntry {
   person: Person
+  /** The number on the card: plain compatibility, or blended when filling an occasion. */
   score: number
+  /** Occasion fit on its own, when the deck is filling an occasion. */
+  fit?: number
 }
 
 /**

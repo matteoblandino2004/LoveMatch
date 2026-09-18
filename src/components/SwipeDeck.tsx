@@ -1,11 +1,12 @@
 import {
   forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type PointerEvent,
 } from 'react'
-import type { Person, SwipeDirection } from '../types'
+import type { Occasion, Person, SwipeDirection } from '../types'
 import type { DeckEntry } from '../lib/matchmaking'
 import { CardPhoto } from './Photos'
 import { PhotoBackdrop } from './Avatar'
 import { scoreLabel, sharedInterests } from '../lib/compatibility'
+import { OCCASION_KINDS, fitLabel, whenLabel } from '../lib/occasions'
 import { distanceBetween } from '../lib/geo'
 import { haptic } from '../lib/native'
 
@@ -19,6 +20,8 @@ interface Props {
   onDecide: (person: Person, direction: SwipeDirection) => void
   onOpen: (person: Person) => void
   onOpenCircle: (person: Person) => void
+  /** Set when the deck is filling a specific occasion rather than browsing. */
+  occasion?: Occasion | null
 }
 
 const THRESHOLD = 105
@@ -26,7 +29,7 @@ const THRESHOLD = 105
 const PHOTO_ZONE = 0.62
 
 export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
-  { entries, viewer, onDecide, onOpen, onOpenCircle },
+  { entries, viewer, onDecide, onOpen, onOpenCircle, occasion },
   ref,
 ) {
   const [drag, setDrag] = useState({ x: 0, y: 0, active: false })
@@ -147,8 +150,13 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
               >
                 <div className="score-badge">
                   <b>{entry.score}</b>
-                  <small>{scoreLabel(entry.score)}</small>
+                  <small>{occasion && entry.fit !== undefined ? fitLabel(entry.fit) : scoreLabel(entry.score)}</small>
                 </div>
+                {occasion && (
+                  <div className="occasion-ribbon">
+                    {OCCASION_KINDS[occasion.kind].emoji} {occasion.title} · {whenLabel(occasion.date)}
+                  </div>
+                )}
                 {isTop && (
                   <>
                     <div className="stamp stamp-like" style={{ opacity: likeOpacity }}>
@@ -159,7 +167,12 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
                     </div>
                   </>
                 )}
-                <CardBody person={entry.person} viewer={viewer} onOpenCircle={onOpenCircle} />
+                <CardBody
+                  person={entry.person}
+                  viewer={viewer}
+                  onOpenCircle={onOpenCircle}
+                  seeking={isTop ? entry.person.seeking?.note : undefined}
+                />
               </div>
             </div>
           )
@@ -170,11 +183,12 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
 })
 
 function CardBody({
-  person, viewer, onOpenCircle,
+  person, viewer, onOpenCircle, seeking,
 }: {
   person: Person
   viewer: Person
   onOpenCircle: (person: Person) => void
+  seeking?: string
 }) {
   const km = distanceBetween(viewer.city, person.city)
   const shared = sharedInterests(viewer, person).slice(0, 3)
@@ -203,6 +217,11 @@ function CardBody({
         {km !== null && km > 0 ? ` · ${km} km away` : ''}
       </div>
       <div className="deck-bio">{person.bio}</div>
+      {seeking && (
+        <div className="chip chip-amber" style={{ marginTop: 9, whiteSpace: 'normal' }}>
+          🗓️ Also after: {seeking}
+        </div>
+      )}
       {shared.length > 0 && (
         <div className="chip-row" style={{ marginTop: 11 }}>
           {shared.map((s) => (

@@ -1,4 +1,4 @@
-import type { Person } from '../types'
+import type { Occasion, Person } from '../types'
 import { compatibility } from '../lib/compatibility'
 import { Avatar } from './Avatar'
 import { PhotoStrip } from './Photos'
@@ -8,6 +8,7 @@ import {
   FAITH_LABELS, SOCIAL_LABELS,
 } from '../lib/options'
 import { distanceBetween } from '../lib/geo'
+import { OCCASION_KINDS, blendScore, fitLabel, occasionFit, whenLabel } from '../lib/occasions'
 import { displayRelationship } from '../lib/people'
 
 interface Props {
@@ -17,11 +18,14 @@ interface Props {
   onOpenCircle?: () => void
   /** Open your own roster, scored against this person. */
   onCheckRoster?: () => void
+  /** When set, also show how this person suits that specific occasion. */
+  occasion?: Occasion | null
 }
 
 /** Everything about one person, plus how they line up with `viewer`. */
-export function ProfileDetail({ person, viewer, onOpenCircle, onCheckRoster }: Props) {
+export function ProfileDetail({ person, viewer, onOpenCircle, onCheckRoster, occasion }: Props) {
   const compat = viewer && viewer.id !== person.id ? compatibility(viewer, person) : null
+  const fit = occasion && viewer ? occasionFit(occasion, viewer, person) : null
   const km = viewer ? distanceBetween(viewer.city, person.city) : null
 
   return (
@@ -48,6 +52,12 @@ export function ProfileDetail({ person, viewer, onOpenCircle, onCheckRoster }: P
 
       {person.bio && <p style={{ marginTop: 14 }}>{person.bio}</p>}
 
+      {person.seeking && (
+        <div className="chip chip-amber" style={{ marginTop: 12, whiteSpace: 'normal' }}>
+          🗓️ Also looking for: {person.seeking.note}
+        </div>
+      )}
+
       {person.circle && (
         <div className="card" style={{ marginTop: 12, borderColor: 'rgba(255,196,107,0.35)' }}>
           <div className="tiny muted">Set up by {person.circle.matchmaker} · {person.circle.relationship}</div>
@@ -69,6 +79,62 @@ export function ProfileDetail({ person, viewer, onOpenCircle, onCheckRoster }: P
       {person.managed?.pitch && (
         <div className="note-quote" style={{ marginTop: 12 }}>
           <b>Their matchmaker says:</b> {person.managed.pitch}
+        </div>
+      )}
+
+      {fit && occasion && compat && (
+        <div className="card" style={{ marginTop: 16, borderColor: 'rgba(255,196,107,0.4)' }}>
+          <div className="between">
+            <div>
+              <div className="tiny muted">
+                {OCCASION_KINDS[occasion.kind].emoji} {occasion.title}
+              </div>
+              <b style={{ fontSize: 16 }}>{fitLabel(fit.score)} for this one</b>
+              <div className="tiny muted" style={{ marginTop: 2 }}>
+                {whenLabel(occasion.date)} · {occasion.city}
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <b style={{ fontSize: 22 }}>{blendScore(compat.score, fit.score)}</b>
+              <div className="tiny muted" style={{ fontSize: 10 }}>
+                {compat.score}% them · {fit.score}% this
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 10 }}>
+            {fit.facets.map((f) => (
+              <div className="facet" key={f.label}>
+                <div className="facet-head">
+                  <b>{f.label}</b>
+                  <span>
+                    {Math.round(f.score * f.weight)} / {f.weight}
+                  </span>
+                </div>
+                <div className="meter">
+                  <i style={{ width: `${Math.max(2, f.score * 100)}%` }} />
+                </div>
+                <div className="facet-detail">{f.detail}</div>
+              </div>
+            ))}
+          </div>
+
+          {fit.reasons.length > 0 && (
+            <div className="chip-row" style={{ marginTop: 11 }}>
+              {fit.reasons.map((r) => (
+                <span className="chip chip-mint" key={r}>
+                  ✦ {r}
+                </span>
+              ))}
+            </div>
+          )}
+          {fit.warnings.length > 0 && (
+            <ul className="tiny muted" style={{ margin: '11px 0 0', paddingLeft: 18 }}>
+              {fit.warnings.map((w) => (
+                <li key={w}>{w}</li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 

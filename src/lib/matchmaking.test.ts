@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildDeck, decideReciprocal, eligibleCount } from './matchmaking'
 import { emptyState } from './storage'
 import { makePerson } from './people'
+import { pairRandom } from './id'
 import type { AppState, Person } from '../types'
 
 function stateWith(profile: Person): AppState {
@@ -81,5 +82,17 @@ describe('buildDeck', () => {
 
   it('counts the eligible pool independently of what has been seen', () => {
     expect(eligibleCount(stateWith(maya), maya)).toBe(buildDeck(stateWith(maya), maya).length)
+  })
+})
+
+describe('hashing', () => {
+  it('scatters rolls when only the tail of the salt changes', () => {
+    // Regression: FNV without a finalizer left near-identical high bits for
+    // strings sharing a prefix, so every invitation got the same answer.
+    const rolls = Array.from({ length: 40 }, (_, i) => pairRandom('a', 'b', `invite-o${i}`))
+    const mean = rolls.reduce((sum, r) => sum + r, 0) / rolls.length
+    expect(mean).toBeGreaterThan(0.35)
+    expect(mean).toBeLessThan(0.65)
+    expect(Math.max(...rolls) - Math.min(...rolls)).toBeGreaterThan(0.8)
   })
 })

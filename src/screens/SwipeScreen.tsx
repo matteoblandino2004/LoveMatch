@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from 'react'
-import type { Person, SwipeDirection } from '../types'
+import type { Occasion, Person, SwipeDirection } from '../types'
 import { useApp } from '../state/store'
 import { buildDeck } from '../lib/matchmaking'
 import { compatibility } from '../lib/compatibility'
+import { OCCASION_KINDS, blendScore, companionLine, occasionFit, whenLabel } from '../lib/occasions'
 import { circleFitFor, rosterFitFor, type Ranked } from '../lib/circles'
 import { SwipeDeck, type DeckHandle } from '../components/SwipeDeck'
 import { Sheet } from '../components/Sheet'
@@ -10,14 +11,29 @@ import { ProfileDetail } from '../components/ProfileDetail'
 import { CircleSheet } from '../components/CircleSheet'
 import { Avatar } from '../components/Avatar'
 import { displayRelationship } from '../lib/people'
+import { VIBES } from '../lib/occasions'
+
+const VIBE_LABEL = Object.fromEntries(
+  Object.entries(VIBES).map(([key, v]) => [key, v.label]),
+) as Record<string, string>
 
 /** Which "who else?" list is open: your own roster, or their matchmaker's people. */
 type CircleView =
   | { kind: 'roster'; candidate: Person }
   | { kind: 'theirs'; candidate: Person; circleId: string; matchmaker: string }
 
-export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
-  const { state, setActiveProfile, swipe, undoSwipe } = useApp()
+interface SwipeScreenProps {
+  onAddProfile: () => void
+  /** The occasion the deck is filling, if any. */
+  occasionId: string | null
+  onSelectOccasion: (id: string | null) => void
+  onCreateOccasion: () => void
+}
+
+export function SwipeScreen({
+  onAddProfile, occasionId, onSelectOccasion, onCreateOccasion,
+}: SwipeScreenProps) {
+  const { state, setActiveProfile, swipe, undoSwipe, recordSwipe, sendInvite } = useApp()
   const deckRef = useRef<DeckHandle>(null)
   const [preview, setPreview] = useState<Person | null>(null)
   const [endorsing, setEndorsing] = useState<Person | null>(null)
@@ -27,7 +43,35 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
   const roster = state.rosterIds.map((id) => state.people[id]).filter(Boolean)
   const active = state.activeProfileId ? state.people[state.activeProfileId] : null
 
-  const deck = useMemo(() => (active ? buildDeck(state, active) : []), [state, active])
+  const occasion = useMemo<Occasion | null>(() => {
+    const found = state.occasions.find((o) => o.id === occasionId) ?? null
+    // An occasion only drives the deck while it belongs to the active profile
+    // and still needs someone — once it's filled, the deck goes back to normal.
+    if (!found || !found.open || found.profileId !== state.activeProfileId) return null
+    return found
+  }, [state.occasions, occasionId, state.activeProfileId])
+
+  const openOccasions = useMemo(
+    () => state.occasions.filter((o) => o.profileId === state.activeProfileId && o.open),
+    [state.occasions, state.activeProfileId],
+  )
+
+  const deck = useMemo(() => {
+    if (!active) return []
+    const base = buildDeck(state, active)
+    if (!occasion) return base
+    // Filling an occasion re-scores the deck: general fit, plus fit for the night itself.
+    const invited = new Set(
+      state.invites.filter((i) => i.occasionId === occasion.id).map((i) => i.targetId),
+    )
+    return base
+      .filter((entry) => !invited.has(entry.person.id))
+      .map((entry) => {
+        const fit = occasionFit(occasion, active, entry.person).score
+        return { ...entry, fit, score: blendScore(entry.score, fit) }
+      })
+      .sort((a, b) => b.score - a.score)
+  }, [state, active, occasion])
 
   const circleEntries = useMemo<Ranked[]>(() => {
     if (!circleView) return []
@@ -55,7 +99,11 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
   const asMatchmaker = active.managed?.kind === 'other'
   const canUndo = state.swipes.some((s) => s.profileId === active.id)
 
-  /** Swipe on `person` for a roster profile — the active one unless told otherwise. */
+  /**
+   * Act on `person` for a roster profile — the active one unless told otherwise.
+   * With an occasion switched on, a right swipe is an invitation to that
+   * occasion rather than a plain like.
+   */
   function decide(
     person: Person,
     direction: SwipeDirection,
@@ -63,14 +111,32 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
   ) {
     const profile = opts.forProfile ?? active
     if (!profile) return
-    const score = compatibility(profile, person).score
+    const compat = compatibility(profile, person).score
+
+    if (occasion && direction === 'like' && profile.id === occasion.profileId) {
+      const fit = occasionFit(occasion, profile, person).score
+      const blended = blendScore(compat, fit)
+      recordSwipe({ profileId: profile.id, targetId: person.id, score: blended })
+      sendInvite({
+        occasionId: occasion.id,
+        profileId: profile.id,
+        targetId: person.id,
+        score: blended,
+        fit,
+        byMatchmaker: profile.managed?.kind === 'other',
+        note: opts.matchmakerNote?.trim() || undefined,
+      })
+      setPreview(null)
+      return
+    }
+
     swipe({
       profileId: profile.id,
       targetId: person.id,
       direction,
       byMatchmaker: profile.managed?.kind === 'other',
       note: opts.matchmakerNote?.trim() || undefined,
-      score,
+      score: compat,
     })
     setPreview(null)
   }
@@ -100,6 +166,10 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
 
   return (
     <div className="screen">
+      {/* Filling an occasion pins the deck to one person, so the switcher only
+          gets in the way — the occasion card below names who it's for. */}
+      {!occasion && (
+        <>
       <div className="section-label" style={{ marginTop: 8 }}>
         Swiping for
       </div>
@@ -129,7 +199,59 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
           + Add
         </button>
       </div>
+        </>
+      )}
 
+      <div className="section-label" style={{ marginTop: occasion ? 8 : 14 }}>
+        Looking for
+      </div>
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+        <button
+          className={`toggle toggle-sm ${occasion ? '' : 'on'}`}
+          onClick={() => onSelectOccasion(null)}
+          style={{ flex: 'none' }}
+        >
+          Anyone
+        </button>
+        {openOccasions.map((o) => (
+          <button
+            key={o.id}
+            className={`toggle toggle-sm ${occasion?.id === o.id ? 'on' : ''}`}
+            onClick={() => onSelectOccasion(o.id)}
+            style={{ flex: 'none' }}
+          >
+            {OCCASION_KINDS[o.kind].emoji} {o.title}
+          </button>
+        ))}
+        <button className="toggle toggle-sm" style={{ flex: 'none' }} onClick={onCreateOccasion}>
+          + Occasion
+        </button>
+      </div>
+
+      {occasion && (
+        <div className="card" style={{ marginTop: 10, padding: '12px 13px', borderColor: 'rgba(255,196,107,0.35)' }}>
+          <div className="row-title" style={{ fontSize: 14.5 }}>
+            {OCCASION_KINDS[occasion.kind].emoji} {occasion.title}
+          </div>
+          <div className="tiny muted" style={{ marginTop: 3 }}>
+            Finding someone for <b>{active.name}</b>
+            {asMatchmaker ? ` · ${displayRelationship(active).toLowerCase()}` : ''}
+          </div>
+          <div className="tiny muted" style={{ marginTop: 3 }}>
+            {whenLabel(occasion.date)} · {occasion.city} · {VIBE_LABEL[occasion.vibe]}
+          </div>
+          {companionLine(occasion) && (
+            <div className="tiny muted" style={{ marginTop: 3 }}>
+              {companionLine(occasion)}
+            </div>
+          )}
+          <div className="tiny" style={{ marginTop: 7 }}>
+            Scores blend the person and the night. Swipe right to ask them.
+          </div>
+        </div>
+      )}
+
+      {!occasion && (
       <div className="card" style={{ marginTop: 12, padding: '11px 13px' }}>
         <div className="tiny">
           {asMatchmaker ? (
@@ -145,6 +267,7 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
           )}
         </div>
       </div>
+      )}
 
       {deck.length === 0 ? (
         <div className="empty" style={{ marginTop: 26 }}>
@@ -169,6 +292,7 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
             onDecide={(person, direction) => decide(person, direction)}
             onOpen={(person) => setPreview(person)}
             onOpenCircle={openTheirCircle}
+            occasion={occasion}
           />
           <div className="deck-actions">
             <button
@@ -199,10 +323,10 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
             </button>
             <button
               className="round round-like"
-              aria-label="Like"
+              aria-label={occasion ? 'Invite' : 'Like'}
               onClick={() => deckRef.current?.fling('like')}
             >
-              ♥
+              {occasion ? '💌' : '♥'}
             </button>
           </div>
 
@@ -217,7 +341,9 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
           )}
 
           <p className="tiny muted center" style={{ marginTop: 10 }}>
-            Drag the card, or use the buttons. ★ sends it with a note from you.
+            {occasion
+              ? 'Swipe right to ask them. ★ asks them with a note from you.'
+              : 'Drag the card, or use the buttons. ★ sends it with a note from you.'}
           </p>
         </>
       )}
@@ -230,6 +356,7 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
               viewer={active}
               onOpenCircle={() => openTheirCircle(preview)}
               onCheckRoster={roster.length > 1 ? () => openRosterFit(preview) : undefined}
+              occasion={occasion}
             />
             <div className="sheet-actions">
               <div style={{ display: 'flex', gap: 9 }}>
@@ -237,7 +364,7 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
                   ✕ Pass
                 </button>
                 <button className="btn btn-primary btn-block" onClick={() => decide(preview, 'like')}>
-                  ♥ Like for {active.name}
+                  {occasion ? `💌 Ask them for ${active.name}` : `♥ Like for ${active.name}`}
                 </button>
               </div>
             </div>
@@ -289,12 +416,18 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
         {endorsing && (
           <>
             <h2 style={{ fontSize: 20 }}>
-              {asMatchmaker ? `Tell ${active.name} why` : 'Add a note'}
+              {occasion
+                ? `Ask ${endorsing.name} along`
+                : asMatchmaker
+                  ? `Tell ${active.name} why`
+                  : 'Add a note'}
             </h2>
             <p className="tiny muted" style={{ marginTop: 6 }}>
-              {asMatchmaker
-                ? `This note goes to ${active.name} with ${endorsing.name}'s profile, and shows up if they match.`
-                : `A private note to yourself about ${endorsing.name}.`}
+              {occasion
+                ? `Your note goes with the invitation to ${occasion.title.toLowerCase()}.`
+                : asMatchmaker
+                  ? `This note goes to ${active.name} with ${endorsing.name}'s profile, and shows up if they match.`
+                  : `A private note to yourself about ${endorsing.name}.`}
             </p>
             <div style={{ display: 'flex', gap: 11, alignItems: 'center', marginTop: 14 }}>
               <Avatar person={endorsing} size={44} />
@@ -309,14 +442,18 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
               <textarea
                 className="textarea"
                 autoFocus
-                placeholder="You two would not stop talking. Trust me on this one."
+                placeholder={
+                  occasion
+                    ? 'Fair warning: my entire family will be there and they will love you.'
+                    : 'You two would not stop talking. Trust me on this one.'
+                }
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
               />
             </div>
             <div className="sheet-actions">
               <button className="btn btn-primary btn-block" onClick={endorse}>
-                ★ Send with note
+                {occasion ? '💌 Send the invitation' : '★ Send with note'}
               </button>
             </div>
           </>

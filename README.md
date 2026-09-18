@@ -7,7 +7,9 @@ profile for your sister, your best friend, your cousin who swears he's fine — 
 and you swipe on their behalf. When the other side swipes back, everyone gets the notification, with
 a compatibility score that shows its work.
 
-You can also make a profile for yourself, swipe for yourself, and let your people swipe for you.
+You can also make a profile for yourself, swipe for yourself, and let your people swipe for you — and
+find someone for a *specific thing*: a wedding you need a +1 for, a double date with you and your
+partner, two tickets going spare on Friday.
 
 It runs in a browser and as a real iOS app — the native project is in `ios/`, ready to open in
 Xcode and sign with your Apple Developer account. See [docs/IOS.md](docs/IOS.md).
@@ -18,7 +20,7 @@ Xcode and sign with your Apple Developer account. See [docs/IOS.md](docs/IOS.md)
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 37 unit tests over the scoring engine, circles and the reducer
+npm test         # 64 unit tests over the scoring engines, circles, occasions and the reducer
 npm run build    # typecheck + production bundle into dist/
 npm run preview  # serve the built bundle
 npm run ios      # build, sync and open the iOS app in Xcode (macOS)
@@ -42,6 +44,35 @@ down near the name for the full profile. Profiles with no photos still get their
 **Swiping as someone else.** Pick whose deck you're in from the switcher at the top of the swipe
 screen. Drag the card or use the buttons. ★ attaches a note from you — "you two would not stop
 talking" — which rides along with the like and shows up again if it becomes a match.
+
+**Occasions — a real thing on the calendar.** "Let's grab a drink sometime" is how nothing happens.
+Give someone on your roster something to go to, and the app finds a date *for that*:
+
+| | |
+|---|---|
+| 💒 Wedding +1 | 👯 Double date |
+| 🎉 Party or birthday | 🍝 Family thing |
+| ✈️ Trip or festival | 🎟️ I have two tickets |
+
+The example this was built around: **John is setting up his friend Tony, so Tony can double date
+with John and his girlfriend.** That's one occasion on Tony's profile, with John and his girlfriend
+listed as the other half of the four.
+
+Switch the deck to an occasion and everything changes. Cards carry a ribbon naming it, the score
+becomes a blend of *how well they suit the person* and *how well they suit the night*, and swiping
+right sends an invitation rather than a like — which can be accepted or turned down, with a reply
+either way. Some people in the app are also trying to fill something of their own, and their card
+says so; when it's the same kind of thing as yours, the fit score goes up.
+
+The occasion-fit score is its own 100 points: **getting there** (30) — real distance to the venue
+against how far they'll travel; **the vibe** (25) — a black-tie wedding aimed at a happy homebody is
+a warning, not a match; **their kind of thing** (25) — interests that suit this specific occasion;
+and **the size of the ask** (20) — four days in Rome with someone's entire family is a lot to ask of
+a person who's here for something casual, and the app says so out loud.
+
+You can ask several people at once, but one date is all it needs: the first yes fills it, and
+everyone still waiting has their invitation withdrawn rather than piling up three dates for one
+wedding.
 
 **Matchmaker circles — the "is there someone better?" problem.** Nobody is matchmaking for exactly
 one person, and that cuts both ways:
@@ -94,6 +125,7 @@ src/
     compatibility.ts        the scoring engine (pure, tested)
     matchmaking.ts          deck building + the reciprocity simulation (pure, tested)
     circles.ts              matchmaker circles + "who fits this person best?" ranking (pure, tested)
+    occasions.ts            occasion kinds, occasion-fit scoring, invitations (pure, tested)
     photos.ts               IndexedDB photo store, downscaling and re-encoding
     geo.ts                  city gazetteer + haversine distance
     native.ts               iOS status bar and haptics; no-ops in a browser
@@ -105,7 +137,8 @@ src/
   state/store.tsx           one reducer, one context, all state transitions (tested)
   components/               SwipeDeck (pointer-event drag), Photos, CircleSheet, ProfileDetail,
                             Sheet, Avatar, Meter
-  screens/                  Onboarding, Swipe, Roster, Matches, Notifications, ProfileEditor
+  screens/                  Onboarding, Swipe, Roster, Events, Matches, Notifications,
+                            ProfileEditor, OccasionEditor
 ios/                        the Capacitor iOS app — open App.xcworkspace in Xcode
 docs/IOS.md                 signing, TestFlight and App Review notes
 ```
@@ -121,8 +154,15 @@ throwing if a browser blocks storage.
 
 State changes all go through one reducer, which makes the interesting behaviour testable without a
 DOM: adding a profile announces it, a matchmaker's like notifies the person, a delayed like sits in
-`pending` until its reveal time passes, undo removes the swipe *and* the match it produced, and
-deleting a profile takes its swipes, matches and notifications with it.
+`pending` until its reveal time passes, an invitation's answer is revealed on a timer and closes out
+every other ask for that occasion, undo removes the swipe *and* the match it produced, and deleting a
+profile takes its swipes, matches, occasions and notifications with it.
+
+Whether someone likes you back, or says yes to a wedding, is a hash of the pairing rather than a
+coin flip — so the simulated world is the same after a reload. That hash needed a proper avalanche
+step to get right: plain FNV-1a leaves strings sharing a long prefix with near-identical high bits,
+and since those high bits become the roll, every invitation from one person came back with the same
+answer. There's a regression test for it.
 
 ## A note on manners
 

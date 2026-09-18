@@ -8,6 +8,10 @@ const ICONS: Record<NotificationKind, string> = {
   match: '💘',
   'matchmaker-swipe': '★',
   'profile-added': '🧑‍🤝‍🧑',
+  occasion: '🗓️',
+  invite: '✉️',
+  'invite-accepted': '🥂',
+  'invite-declined': '🙇',
   tip: '💡',
 }
 

@@ -1,4 +1,4 @@
-import type { Person } from '../types'
+import type { Occasion, Person } from '../types'
 import { makePerson } from './people'
 
 /**
@@ -36,6 +36,7 @@ export const COMMUNITY: Person[] = [
       id: 'mm_dev', matchmaker: 'Dev', relationship: 'His sister',
       pitch: 'She saves children\'s lives at work and still texts me back. Be worthy.',
     },
+    seeking: { kind: 'wedding', note: 'a +1 for her brother\'s wedding in August' }
   }),
   makePerson({
     id: 'c_marcus', name: 'Marcus', age: 34, gender: 'man', interestedIn: ['woman'],
@@ -50,6 +51,7 @@ export const COMMUNITY: Person[] = [
       id: 'mm_tanya', matchmaker: 'Tanya', relationship: 'Her brother',
       pitch: 'He has been the most reliable man in my life for 34 years. Your move.',
     },
+    seeking: { kind: 'double-date', note: 'a double date — his brother and sister-in-law keep asking' }
   }),
   makePerson({
     id: 'c_sofia', name: 'Sofia', age: 27, gender: 'woman', interestedIn: ['man'],
@@ -64,6 +66,7 @@ export const COMMUNITY: Person[] = [
       id: 'mm_rosa', matchmaker: 'Rosa', relationship: 'Her best friend',
       pitch: 'Funniest person I know in two languages. Do not let the cool exterior fool you.',
     },
+    seeking: { kind: 'activity', note: 'someone to use her second ticket to a gallery opening' }
   }),
   makePerson({
     id: 'c_jonah', name: 'Jonah', age: 33, gender: 'man', interestedIn: ['woman', 'nonbinary'],
@@ -102,6 +105,7 @@ export const COMMUNITY: Person[] = [
       id: 'mm_dev', matchmaker: 'Dev', relationship: 'His roommate',
       pitch: 'Kindest person in our apartment, and he does the dishes unprompted.',
     },
+    seeking: { kind: 'double-date', note: 'a double date with his roommate and his girlfriend' }
   }),
   makePerson({
     id: 'c_ruth', name: 'Ruth', age: 36, gender: 'woman', interestedIn: ['man', 'woman'],
@@ -146,6 +150,7 @@ export const COMMUNITY: Person[] = [
     intent: 'long-term', ageMin: 28, ageMax: 40, maxDistanceKm: 50,
     lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'want', pets: 'dog', faith: 3, politics: 'moderate', socialEnergy: 3 },
     prompts: [{ question: 'The way to win me over is', answer: 'Be the person who remembers the names of everyone at the table.' }],
+    seeking: { kind: 'family', note: 'someone brave enough for a Sunday at his mother\'s' }
   }),
   makePerson({
     id: 'c_yara', name: 'Yara', age: 31, gender: 'woman', interestedIn: ['man'],
@@ -206,6 +211,7 @@ export const COMMUNITY: Person[] = [
     intent: 'long-term', ageMin: 30, ageMax: 44, maxDistanceKm: 40,
     lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'dont-want', pets: 'cat', faith: 1, politics: 'left', socialEnergy: 3 },
     prompts: [{ question: "Don't hate me if I", answer: 'Ask three follow-up questions. It is a compliment. Usually.' }],
+    seeking: { kind: 'party', note: 'a date for her firm\'s black-tie thing in November' }
   }),
   makePerson({
     id: 'c_sam', name: 'Sam', age: 27, gender: 'nonbinary', interestedIn: ['woman', 'nonbinary'],
@@ -260,6 +266,7 @@ export const COMMUNITY: Person[] = [
     intent: 'long-term', ageMin: 25, ageMax: 36, maxDistanceKm: 60,
     lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'sometimes', kids: 'want', pets: 'dog', faith: 4, politics: 'moderate', socialEnergy: 4 },
     prompts: [{ question: 'Two truths and a lie', answer: 'I have opened for a Grammy winner. I cannot drive stick. I hate country music.' }],
+    seeking: { kind: 'trip', note: 'a passenger for a drive to a festival in the fall' }
   }),
   makePerson({
     id: 'c_raj', name: 'Raj', age: 32, gender: 'man', interestedIn: ['woman'],
@@ -406,6 +413,7 @@ export const COMMUNITY: Person[] = [
     intent: 'long-term', ageMin: 35, ageMax: 55, maxDistanceKm: 35,
     lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'sometimes', kids: 'have-done', pets: 'dog', faith: 2, politics: 'left', socialEnergy: 2 },
     prompts: [{ question: "Don't hate me if I", answer: 'Fall asleep during the movie. It is not you, it is the 4am alarm.' }],
+    seeking: { kind: 'activity', note: 'someone to go to the farmers market and then a matinee' }
   }),
 ]
 
@@ -467,4 +475,61 @@ export const SAMPLE_ROSTER: Person[] = [
       pitch: 'Everyone says she is intimidating. She is not. She is just tall and says what she thinks.',
     },
   }),
+]
+
+/** yyyy-mm-dd, `days` from now — keeps the sample occasions always upcoming. */
+function inDays(days: number): string {
+  const d = new Date(Date.now() + days * 86_400_000)
+  return d.toISOString().slice(0, 10)
+}
+
+/** Sample occasions, loaded alongside the sample family. */
+export const SAMPLE_OCCASIONS: Occasion[] = [
+  {
+    id: 'o_sample_double',
+    profileId: 'r_nick',
+    kind: 'double-date',
+    title: 'Double date with me and Gabi',
+    date: inDays(9),
+    city: 'Brooklyn, NY',
+    vibe: 'low-key',
+    details:
+      "Dinner then that bar with the shuffleboard. Gabi and I have been trying to get Nick out for a year. He'll be quiet for twenty minutes and then he's the funniest person there.",
+    companions: [
+      { name: 'You', relationship: 'Me' },
+      { name: 'Gabi', relationship: 'My girlfriend' },
+    ],
+    byMatchmaker: true,
+    open: true,
+    createdAt: Date.now(),
+  },
+  {
+    id: 'o_sample_wedding',
+    profileId: 'r_maya',
+    kind: 'wedding',
+    title: "Our cousin's wedding in Rome",
+    date: inDays(38),
+    city: 'Rome, IT',
+    vibe: 'big-night',
+    details:
+      'Four days, one enormous family, and an aunt who will ask your intentions before the antipasti. Black tie. Open bar, so it evens out.',
+    companions: [{ name: 'The entire family', relationship: 'All of us' }],
+    byMatchmaker: true,
+    open: true,
+    createdAt: Date.now(),
+  },
+  {
+    id: 'o_sample_tickets',
+    profileId: 'r_jo',
+    kind: 'activity',
+    title: 'Two tickets to a show on Friday',
+    date: inDays(4),
+    city: 'Brooklyn, NY',
+    vibe: 'low-key',
+    details: "Jo's friend cancelled. Small venue, loud band, they know the drummer.",
+    companions: [],
+    byMatchmaker: true,
+    open: true,
+    createdAt: Date.now(),
+  },
 ]

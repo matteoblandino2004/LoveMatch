@@ -2,7 +2,7 @@ import type { AppState } from '../types'
 import { COMMUNITY } from './seed'
 
 const KEY = 'lovematch.state.v1'
-export const STATE_VERSION = 2
+export const STATE_VERSION = 3
 
 export function emptyState(): AppState {
   const people: Record<string, (typeof COMMUNITY)[number]> = {}
@@ -15,6 +15,8 @@ export function emptyState(): AppState {
     swipes: [],
     pending: [],
     matches: [],
+    occasions: [],
+    invites: [],
     notifications: [],
     activeProfileId: null,
     version: STATE_VERSION,
@@ -57,6 +59,10 @@ function migrate(parsed: AppState): AppState | null {
       Object.entries(state.people).map(([id, person]) => [id, { ...person, photos: person.photos ?? [] }]),
     )
     state = { ...state, people, version: 2 }
+  }
+  if (state.version === 2) {
+    // v3 added occasions and invitations.
+    state = { ...state, occasions: [], invites: [], version: 3 }
   }
   return state.version === STATE_VERSION ? state : null
 }

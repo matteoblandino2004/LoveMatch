@@ -2,12 +2,15 @@ import {
   createContext, useContext, useEffect, useMemo, useReducer, useRef,
   type ReactNode,
 } from 'react'
-import type { AppNotification, AppState, Match, Person, SwipeDirection } from '../types'
+import type {
+  AppNotification, AppState, Invite, InviteStatus, Match, Occasion, Person, SwipeDirection,
+} from '../types'
 import { clearState, emptyState, loadState, saveState } from '../lib/storage'
 import { clearAllPhotos, deletePhotos } from '../lib/photos'
 import { decideReciprocal } from '../lib/matchmaking'
+import { OCCASION_KINDS, decideInvite, whenLabel } from '../lib/occasions'
 import { uid } from '../lib/id'
-import { SAMPLE_ROSTER } from '../lib/seed'
+import { SAMPLE_OCCASIONS, SAMPLE_ROSTER } from '../lib/seed'
 import { displayRelationship } from '../lib/people'
 
 type Action =
@@ -25,6 +28,26 @@ type Action =
       score: number
     }
   | { type: 'swipe/undo'; profileId: string }
+  | {
+      /** Record a swipe with no like semantics — used when an invitation is the action. */
+      type: 'swipe/record'
+      profileId: string
+      targetId: string
+      score: number
+    }
+  | { type: 'occasion/save'; occasion: Occasion }
+  | { type: 'occasion/setOpen'; id: string; open: boolean }
+  | { type: 'occasion/remove'; id: string }
+  | {
+      type: 'invite/send'
+      occasionId: string
+      profileId: string
+      targetId: string
+      score: number
+      fit: number
+      byMatchmaker: boolean
+      note?: string
+    }
   | { type: 'pending/resolve'; now: number }
   | { type: 'notifications/readAll' }
   | { type: 'match/archive'; id: string }
@@ -86,6 +109,8 @@ function reducer(state: AppState, action: Action): AppState {
         swipes: state.swipes.filter((s) => s.profileId !== action.id),
         pending: state.pending.filter((p) => p.profileId !== action.id),
         matches: state.matches.filter((m) => m.profileId !== action.id),
+        occasions: state.occasions.filter((o) => o.profileId !== action.id),
+        invites: state.invites.filter((i) => i.profileId !== action.id),
         notifications: state.notifications.filter((n) => n.profileId !== action.id),
       }
     }
@@ -146,6 +171,23 @@ function reducer(state: AppState, action: Action): AppState {
       }
     }
 
+    case 'swipe/record':
+      return {
+        ...state,
+        swipes: [
+          ...state.swipes,
+          {
+            id: uid('s_'),
+            profileId: action.profileId,
+            targetId: action.targetId,
+            direction: 'like',
+            byMatchmaker: state.people[action.profileId]?.managed?.kind === 'other',
+            score: action.score,
+            at: Date.now(),
+          },
+        ],
+      }
+
     case 'swipe/undo': {
       const last = [...state.swipes].reverse().find((s) => s.profileId === action.profileId)
       if (!last) return state
@@ -159,18 +201,100 @@ function reducer(state: AppState, action: Action): AppState {
       }
     }
 
-    case 'pending/resolve': {
-      const due = state.pending.filter((p) => p.revealAt <= action.now)
-      if (!due.length) return state
-      let next: AppState = {
-        ...state,
-        pending: state.pending.filter((p) => p.revealAt > action.now),
+    case 'occasion/save': {
+      const exists = state.occasions.some((o) => o.id === action.occasion.id)
+      const occasions = exists
+        ? state.occasions.map((o) => (o.id === action.occasion.id ? action.occasion : o))
+        : [action.occasion, ...state.occasions]
+      const next: AppState = { ...state, occasions }
+      if (exists) return next
+
+      const profile = state.people[action.occasion.profileId]
+      const meta = OCCASION_KINDS[action.occasion.kind]
+      return {
+        ...next,
+        notifications: notify(next, {
+          kind: 'occasion',
+          title: `${profile?.name ?? 'Someone'} needs a date — ${meta.label.toLowerCase()}`,
+          body: `${meta.emoji} ${action.occasion.title} · ${whenLabel(action.occasion.date)}. Swipe with the occasion switched on to find someone who actually suits it.`,
+          profileId: action.occasion.profileId,
+          occasionId: action.occasion.id,
+        }),
       }
+    }
+
+    case 'occasion/setOpen':
+      return {
+        ...state,
+        occasions: state.occasions.map((o) => (o.id === action.id ? { ...o, open: action.open } : o)),
+      }
+
+    case 'occasion/remove':
+      return {
+        ...state,
+        occasions: state.occasions.filter((o) => o.id !== action.id),
+        invites: state.invites.filter((i) => i.occasionId !== action.id),
+        notifications: state.notifications.filter((n) => n.occasionId !== action.id),
+      }
+
+    case 'invite/send': {
+      const occasion = state.occasions.find((o) => o.id === action.occasionId)
+      if (!occasion) return state
+      const already = state.invites.some(
+        (i) => i.occasionId === action.occasionId && i.targetId === action.targetId,
+      )
+      if (already) return state
+
+      const { accepted, reply, delayMs } = decideInvite(
+        action.profileId,
+        action.targetId,
+        action.occasionId,
+        action.score,
+      )
+      const invite: Invite = {
+        id: uid('i_'),
+        occasionId: action.occasionId,
+        profileId: action.profileId,
+        targetId: action.targetId,
+        status: 'pending',
+        score: action.score,
+        fit: action.fit,
+        byMatchmaker: action.byMatchmaker,
+        note: action.note,
+        sentAt: Date.now(),
+        revealAt: Date.now() + delayMs,
+        reply,
+      }
+      void accepted // decided now, revealed when revealAt passes
+
+      const next: AppState = { ...state, invites: [invite, ...state.invites] }
+      const profileName = nameOf(state, action.profileId)
+      const targetName = nameOf(state, action.targetId)
+      return {
+        ...next,
+        notifications: notify(next, {
+          kind: 'invite',
+          title: `Invitation sent to ${targetName}`,
+          body: `${OCCASION_KINDS[occasion.kind].emoji} ${profileName} asked them to ${occasion.title} · ${whenLabel(occasion.date)}${action.note ? ` — "${action.note}"` : ''}.`,
+          profileId: action.profileId,
+          occasionId: occasion.id,
+          inviteId: invite.id,
+        }),
+      }
+    }
+
+    case 'pending/resolve': {
+      // Likes and invitations both come due on this tick, and either can be
+      // empty — resolving one must never short-circuit the other.
+      const due = state.pending.filter((p) => p.revealAt <= action.now)
+      let next: AppState = due.length
+        ? { ...state, pending: state.pending.filter((p) => p.revealAt > action.now) }
+        : state
       for (const p of due) {
         if (!p.willMatch) continue
         next = applyMatch(next, p)
       }
-      return next
+      return resolveInvites(next, action.now)
     }
 
     case 'notifications/readAll':
@@ -190,10 +314,15 @@ function reducer(state: AppState, action: Action): AppState {
         people[person.id] = person
         rosterIds.push(person.id)
       }
+      const occasions = [...state.occasions]
+      for (const occasion of SAMPLE_OCCASIONS) {
+        if (!occasions.some((o) => o.id === occasion.id)) occasions.push(occasion)
+      }
       return {
         ...state,
         people,
         rosterIds,
+        occasions,
         activeProfileId: state.activeProfileId ?? rosterIds[0] ?? null,
       }
     }
@@ -212,6 +341,92 @@ type MatchSource = {
   score: number
   byMatchmaker: boolean
   note?: string
+}
+
+/**
+ * Reveal the answer to every invitation whose time has come. The answer is a
+ * pure function of the pairing, so it survives a reload unchanged.
+ */
+function resolveInvites(state: AppState, now: number): AppState {
+  // Oldest answer first, so whoever replied earliest gets the spot.
+  const due = state.invites
+    .filter((i) => i.status === 'pending' && i.revealAt <= now)
+    .sort((a, b) => a.revealAt - b.revealAt)
+  if (!due.length) return state
+
+  let next = state
+  for (const invite of due) {
+    const occasion = next.occasions.find((o) => o.id === invite.occasionId)
+
+    // You can ask several people, but only the first yes counts. Anyone still
+    // waiting once the spot is filled gets their invitation withdrawn rather
+    // than a second acceptance for a date that only needs one person.
+    const filled = next.invites.some(
+      (i) => i.occasionId === invite.occasionId && i.status === 'accepted',
+    )
+    const decision = decideInvite(invite.profileId, invite.targetId, invite.occasionId, invite.score)
+    const accepted = !filled && decision.accepted
+    const status: InviteStatus = accepted ? 'accepted' : 'declined'
+    const reply = filled ? WITHDRAWN : invite.reply
+    const invites = next.invites.map((i) => (i.id === invite.id ? { ...i, status, reply } : i))
+    // A filled occasion stops taking invitations.
+    const occasions = accepted
+      ? next.occasions.map((o) => (o.id === invite.occasionId ? { ...o, open: false } : o))
+      : next.occasions
+    next = { ...next, invites, occasions }
+
+    const profileName = nameOf(next, invite.profileId)
+    const targetName = nameOf(next, invite.targetId)
+    const title = occasion?.title ?? 'the plan'
+    const when = occasion ? ` · ${whenLabel(occasion.date)}` : ''
+    next = {
+      ...next,
+      notifications: notify(next, {
+        kind: accepted ? 'invite-accepted' : 'invite-declined',
+        title: accepted
+          ? `${targetName} said yes — ${profileName} has a date`
+          : filled
+            ? `Took back the ask to ${targetName}`
+            : `${targetName} can't make it`,
+        body: filled
+          ? `${title}${when} was already sorted, so ${targetName}'s invitation was withdrawn.`
+          : `${title}${when} — “${reply ?? ''}”`,
+        profileId: invite.profileId,
+        occasionId: invite.occasionId,
+        inviteId: invite.id,
+      }),
+    }
+
+    // One date is all this needs, so nobody is left waiting on an answer.
+    if (accepted) next = withdrawRemaining(next, invite.occasionId, title, when)
+  }
+  return next
+}
+
+const WITHDRAWN = 'Withdrawn — the spot was already taken.'
+
+/** Close out every invitation still waiting on an occasion that just filled. */
+function withdrawRemaining(state: AppState, occasionId: string, title: string, when: string): AppState {
+  const waiting = state.invites.filter((i) => i.occasionId === occasionId && i.status === 'pending')
+  if (!waiting.length) return state
+
+  const ids = new Set(waiting.map((i) => i.id))
+  const next: AppState = {
+    ...state,
+    invites: state.invites.map((i) =>
+      ids.has(i.id) ? { ...i, status: 'declined' as InviteStatus, reply: WITHDRAWN } : i,
+    ),
+  }
+  const names = waiting.map((i) => nameOf(next, i.targetId))
+  return {
+    ...next,
+    notifications: notify(next, {
+      kind: 'invite-declined',
+      title: `Took back ${waiting.length} other ask${waiting.length === 1 ? '' : 's'}`,
+      body: `${title}${when} is sorted, so ${names.slice(0, 3).join(', ')}${names.length > 3 ? ' and others' : ''} were told it's filled.`,
+      occasionId,
+    }),
+  }
 }
 
 function applyMatch(state: AppState, source: MatchSource): AppState {
@@ -262,6 +477,19 @@ interface Store {
     score: number
   }) => void
   undoSwipe: (profileId: string) => void
+  recordSwipe: (args: { profileId: string; targetId: string; score: number }) => void
+  saveOccasion: (occasion: Occasion) => void
+  setOccasionOpen: (id: string, open: boolean) => void
+  removeOccasion: (id: string) => void
+  sendInvite: (args: {
+    occasionId: string
+    profileId: string
+    targetId: string
+    score: number
+    fit: number
+    byMatchmaker: boolean
+    note?: string
+  }) => void
   markNotificationsRead: () => void
   archiveMatch: (id: string) => void
   loadSampleRoster: () => void
@@ -304,6 +532,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setActiveProfile: (id) => dispatch({ type: 'profile/setActive', id }),
       swipe: (args) => dispatch({ type: 'swipe', ...args }),
       undoSwipe: (profileId) => dispatch({ type: 'swipe/undo', profileId }),
+      recordSwipe: (args) => dispatch({ type: 'swipe/record', ...args }),
+      saveOccasion: (occasion) => dispatch({ type: 'occasion/save', occasion }),
+      setOccasionOpen: (id, open) => dispatch({ type: 'occasion/setOpen', id, open }),
+      removeOccasion: (id) => dispatch({ type: 'occasion/remove', id }),
+      sendInvite: (args) => dispatch({ type: 'invite/send', ...args }),
       markNotificationsRead: () => dispatch({ type: 'notifications/readAll' }),
       archiveMatch: (id) => dispatch({ type: 'match/archive', id }),
       loadSampleRoster: () => dispatch({ type: 'seed/sample' }),

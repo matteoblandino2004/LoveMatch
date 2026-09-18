@@ -11,6 +11,15 @@ export function hash(str: string): number {
     h ^= str.charCodeAt(i)
     h = Math.imul(h, 16777619)
   }
+  // FNV alone leaves strings that share a long prefix with near-identical high
+  // bits, and the high bits are exactly what pairRandom turns into its number.
+  // Without this finalizer, "invite-o1" and "invite-o2" roll almost the same
+  // value and every invitation gets the same answer.
+  h ^= h >>> 16
+  h = Math.imul(h, 2246822507)
+  h ^= h >>> 13
+  h = Math.imul(h, 3266489909)
+  h ^= h >>> 16
   return h >>> 0
 }
 

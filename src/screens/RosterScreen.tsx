@@ -6,15 +6,17 @@ import { Sheet } from '../components/Sheet'
 import { ProfileDetail } from '../components/ProfileDetail'
 import { displayRelationship } from '../lib/people'
 import { buildDeck, eligibleCount } from '../lib/matchmaking'
+import { OCCASION_KINDS, whenLabel } from '../lib/occasions'
 
 interface Props {
   onAdd: (kind: 'self' | 'other') => void
   onEdit: (person: Person) => void
   onSwipeFor: (id: string) => void
+  onAddOccasion: (id: string) => void
 }
 
 /** Everyone you're matchmaking for — plus yourself, if you're in the game. */
-export function RosterScreen({ onAdd, onEdit, onSwipeFor }: Props) {
+export function RosterScreen({ onAdd, onEdit, onSwipeFor, onAddOccasion }: Props) {
   const { state } = useApp()
   const [open, setOpen] = useState<Person | null>(null)
 
@@ -29,7 +31,11 @@ export function RosterScreen({ onAdd, onEdit, onSwipeFor }: Props) {
     const avg = likes.length
       ? Math.round(likes.reduce((sum, s) => sum + s.score, 0) / likes.length)
       : 0
-    return { likes: likes.length, matches: matches.length, remaining, avg, pool: eligibleCount(state, person) }
+    const occasions = state.occasions.filter((o) => o.profileId === person.id && o.open)
+    return {
+      likes: likes.length, matches: matches.length, remaining, avg,
+      pool: eligibleCount(state, person), occasions,
+    }
   }
 
   return (
@@ -79,6 +85,16 @@ export function RosterScreen({ onAdd, onEdit, onSwipeFor }: Props) {
                 <Stat value={s.remaining} label="left to see" />
               </div>
 
+              {s.occasions.length > 0 && (
+                <div className="chip-row" style={{ marginTop: 11 }}>
+                  {s.occasions.map((o) => (
+                    <span className="chip chip-amber" key={o.id}>
+                      {OCCASION_KINDS[o.kind].emoji} {o.title} · {whenLabel(o.date)}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 <button className="btn btn-primary btn-sm btn-block" onClick={() => onSwipeFor(person.id)}>
                   {isSelf ? 'Swipe' : `Swipe for ${person.name}`}
@@ -87,6 +103,13 @@ export function RosterScreen({ onAdd, onEdit, onSwipeFor }: Props) {
                   Edit
                 </button>
               </div>
+              <button
+                className="btn btn-ghost btn-sm btn-block"
+                style={{ marginTop: 8 }}
+                onClick={() => onAddOccasion(person.id)}
+              >
+                🗓️ Give {isSelf ? 'yourself' : person.name} something to go to
+              </button>
 
               {s.avg > 0 && (
                 <p className="tiny muted" style={{ marginTop: 9 }}>

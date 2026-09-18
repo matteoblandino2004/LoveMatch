@@ -89,15 +89,15 @@ A few things App Review will specifically care about for this app:
   family" button fills the app with profiles instantly — point them at it in the review notes, or
   they may report a blank app.
 - **Screenshots.** You need 6.7" screenshots at minimum. Run the simulator on an iPhone 15 Pro Max,
-  load the sample family, and grab the swipe deck, a score breakdown, a match, and a matchmaker's
-  circle.
+  load the sample family, and grab the swipe deck, a score breakdown, a match, a matchmaker's circle
+  and the occasions screen.
 - **Privacy policy URL.** Required for every app. A short page saying "all data stays on the
   device, nothing is collected or transmitted" is accurate and sufficient.
 
 ### Review notes worth pasting
 
-> LoveMatch is an offline dating app for matchmakers: you build profiles for friends and family and
-> swipe on their behalf. It has no server, no accounts and makes no network requests — all profiles,
+> LoveMatch is an offline dating app for matchmakers: you build profiles for friends and family,
+> swipe on their behalf, and find them dates for specific occasions like a wedding or a double date. It has no server, no accounts and makes no network requests — all profiles,
 > photos, swipes and matches are stored locally on the device. The other profiles in the app are
 > fictional sample data bundled with the build. To see the app populated, tap "Just show me — load a
 > sample family" on the welcome screen.
