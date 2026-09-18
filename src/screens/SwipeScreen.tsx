@@ -1,14 +1,15 @@
 import { useMemo, useRef, useState } from 'react'
-import type { Occasion, Person, SwipeDirection } from '../types'
+import type { Occasion, Person, SwipeDirection, Tie } from '../types'
 import { useApp } from '../state/store'
 import { buildDeck } from '../lib/matchmaking'
-import { compatibility } from '../lib/compatibility'
+import { compatibility, failedDealbreakers } from '../lib/compatibility'
 import { OCCASION_KINDS, blendScore, companionLine, occasionFit, whenLabel } from '../lib/occasions'
 import { circleFitFor, rosterFitFor, type Ranked } from '../lib/circles'
 import { SwipeDeck, type DeckHandle } from '../components/SwipeDeck'
 import { Sheet } from '../components/Sheet'
 import { ProfileDetail } from '../components/ProfileDetail'
 import { CircleSheet } from '../components/CircleSheet'
+import { PeopleSearch } from '../components/PeopleSearch'
 import { Avatar } from '../components/Avatar'
 import { displayRelationship } from '../lib/people'
 import { VIBES } from '../lib/occasions'
@@ -33,12 +34,14 @@ interface SwipeScreenProps {
 export function SwipeScreen({
   onAddProfile, occasionId, onSelectOccasion, onCreateOccasion,
 }: SwipeScreenProps) {
-  const { state, setActiveProfile, swipe, undoSwipe, recordSwipe, sendInvite } = useApp()
+  const { state, setActiveProfile, swipe, undoSwipe, recordSwipe, sendInvite, removeConnection } =
+    useApp()
   const deckRef = useRef<DeckHandle>(null)
   const [preview, setPreview] = useState<Person | null>(null)
   const [endorsing, setEndorsing] = useState<Person | null>(null)
   const [note, setNote] = useState('')
   const [circleView, setCircleView] = useState<CircleView | null>(null)
+  const [linking, setLinking] = useState<{ person: Person; kind: Tie } | null>(null)
 
   const roster = state.rosterIds.map((id) => state.people[id]).filter(Boolean)
   const active = state.activeProfileId ? state.people[state.activeProfileId] : null
@@ -353,20 +356,45 @@ export function SwipeScreen({
           <>
             <ProfileDetail
               person={preview}
-              viewer={active}
-              onOpenCircle={() => openTheirCircle(preview)}
-              onCheckRoster={roster.length > 1 ? () => openRosterFit(preview) : undefined}
-              occasion={occasion}
+              viewer={preview.id === active.id ? null : active}
+              onOpenCircle={preview.circle ? () => openTheirCircle(preview) : undefined}
+              onCheckRoster={
+                roster.length > 1 && !preview.managed ? () => openRosterFit(preview) : undefined
+              }
+              occasion={preview.managed ? null : occasion}
+              onOpenPerson={(person) => setPreview(person)}
+              onAddToCircle={
+                preview.managed ? (kind) => setLinking({ person: preview, kind }) : undefined
+              }
+              onRemoveConnection={preview.managed ? removeConnection : undefined}
             />
             <div className="sheet-actions">
-              <div style={{ display: 'flex', gap: 9 }}>
-                <button className="btn btn-ghost" onClick={() => decide(preview, 'pass')}>
-                  ✕ Pass
+              {preview.managed ? (
+                <button className="btn btn-ghost btn-block" onClick={() => setPreview(null)}>
+                  Done
                 </button>
-                <button className="btn btn-primary btn-block" onClick={() => decide(preview, 'like')}>
-                  {occasion ? `💌 Ask them for ${active.name}` : `♥ Like for ${active.name}`}
-                </button>
-              </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 9 }}>
+                  <button className="btn btn-ghost" onClick={() => decide(preview, 'pass')}>
+                    ✕ Pass
+                  </button>
+                  {failedDealbreakers(active, preview).length > 0 ? (
+                    // Walking someone's friends can reach people the deck filters
+                    // out. The rule stands, but a matchmaker can overrule it.
+                    <button
+                      className="btn btn-block"
+                      style={{ borderColor: 'rgba(255,196,107,0.5)', color: '#ffdca6' }}
+                      onClick={() => decide(preview, 'like')}
+                    >
+                      Against {active.name}'s rules — send anyway
+                    </button>
+                  ) : (
+                    <button className="btn btn-primary btn-block" onClick={() => decide(preview, 'like')}>
+                      {occasion ? `💌 Ask them for ${active.name}` : `♥ Like for ${active.name}`}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </>
         )}
@@ -408,6 +436,16 @@ export function SwipeScreen({
               setCircleView(null)
               setPreview(entry.person)
             }}
+          />
+        )}
+      </Sheet>
+
+      <Sheet open={!!linking} onClose={() => setLinking(null)}>
+        {linking && (
+          <PeopleSearch
+            subject={linking.person}
+            kind={linking.kind}
+            onDone={() => setLinking(null)}
           />
         )}
       </Sheet>

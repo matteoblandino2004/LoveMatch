@@ -4,6 +4,7 @@ import { emptyState } from '../lib/storage'
 import { makePerson } from '../lib/people'
 import { decideReciprocal } from '../lib/matchmaking'
 import { decideInvite } from '../lib/occasions'
+import { connectionsFor, involves } from '../lib/connections'
 import type { AppState, Occasion, Person } from '../types'
 
 const { reducer } = _internal
@@ -385,5 +386,65 @@ describe('an occasion only needs one date', () => {
     const other = state.invites.find((i) => i.occasionId === 'o_other')!
     expect(other.status).toBe('pending')
     expect(state.occasions.find((o) => o.id === 'o_other')!.open).toBe(true)
+  })
+})
+
+describe('family and friends', () => {
+  it('links two people with one record that both profiles read', () => {
+    const state = reducer(withProfile(rosterProfile('r_a')), {
+      type: 'connection/add', aId: 'r_a', bId: 'c_daniel', kind: 'friend', label: 'Work friends',
+    })
+    const added = state.connections.find((c) => involves(c, 'r_a') && involves(c, 'c_daniel'))!
+    expect(added.label).toBe('Work friends')
+    expect(connectionsFor(state, 'r_a', 'friend').map((l) => l.person.id)).toContain('c_daniel')
+    expect(connectionsFor(state, 'c_daniel', 'friend').map((l) => l.person.id)).toContain('r_a')
+  })
+
+  it('updates the existing link instead of duplicating the pair', () => {
+    let state = reducer(withProfile(rosterProfile('r_a')), {
+      type: 'connection/add', aId: 'r_a', bId: 'c_daniel', kind: 'friend', label: 'Work friends',
+    })
+    const before = state.connections.length
+    // Same pair, stated the other way round and reclassified.
+    state = reducer(state, {
+      type: 'connection/add', aId: 'c_daniel', bId: 'r_a', kind: 'family', label: 'Cousins',
+    })
+    expect(state.connections).toHaveLength(before)
+    const link = state.connections.find((c) => involves(c, 'r_a') && involves(c, 'c_daniel'))!
+    expect(link.kind).toBe('family')
+    expect(link.label).toBe('Cousins')
+  })
+
+  it('refuses to link someone to themselves', () => {
+    const base = withProfile(rosterProfile('r_a'))
+    const state = reducer(base, {
+      type: 'connection/add', aId: 'r_a', bId: 'r_a', kind: 'friend', label: 'Me',
+    })
+    expect(state.connections).toHaveLength(base.connections.length)
+  })
+
+  it('removes a link by id', () => {
+    let state = reducer(withProfile(rosterProfile('r_a')), {
+      type: 'connection/add', aId: 'r_a', bId: 'c_daniel', kind: 'friend', label: 'Work friends',
+    })
+    const added = state.connections.find((c) => involves(c, 'r_a') && involves(c, 'c_daniel'))!
+    state = reducer(state, { type: 'connection/remove', id: added.id })
+    expect(connectionsFor(state, 'r_a')).toHaveLength(0)
+    // The rest of the community graph is untouched.
+    expect(state.connections.length).toBeGreaterThan(10)
+  })
+
+  it("takes a deleted profile out of everyone elses circles", () => {
+    let state = reducer(withProfile(rosterProfile('r_a')), {
+      type: 'connection/add', aId: 'r_a', bId: 'c_daniel', kind: 'friend', label: 'Work friends',
+    })
+    state = reducer(state, { type: 'profile/remove', id: 'r_a' })
+    expect(connectionsFor(state, 'c_daniel', 'friend').map((l) => l.person.id)).not.toContain('r_a')
+  })
+
+  it('loads the sample family already knowing each other', () => {
+    const state = reducer(emptyState(), { type: 'seed/sample' })
+    expect(connectionsFor(state, 'r_maya', 'family').map((l) => l.person.id)).toContain('r_carla')
+    expect(connectionsFor(state, 'r_maya', 'friend').map((l) => l.person.id)).toContain('r_jo')
   })
 })

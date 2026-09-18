@@ -1,4 +1,4 @@
-import type { Occasion, Person } from '../types'
+import type { Occasion, Person, Tie } from '../types'
 import { makePerson } from './people'
 
 /**
@@ -532,4 +532,62 @@ export const SAMPLE_OCCASIONS: Occasion[] = [
     open: true,
     createdAt: Date.now(),
   },
+]
+
+export interface SeedLink {
+  aId: string
+  bId: string
+  kind: Tie
+  label: string
+}
+
+/**
+ * The community's own social graph — who is whose cousin, who met at work.
+ * Labels read the same from both sides, so one record serves both profiles.
+ * These exist from the start, sample family or not.
+ */
+export const COMMUNITY_CONNECTIONS: SeedLink[] = [
+  // Rosa's lot, who all know each other.
+  { aId: 'c_daniel', bId: 'c_luca', kind: 'friend', label: 'Work in the same kitchen' },
+  { aId: 'c_daniel', bId: 'c_sofia', kind: 'friend', label: 'Childhood friends' },
+  { aId: 'c_sofia', bId: 'c_yara', kind: 'friend', label: 'Design school friends' },
+  { aId: 'c_luca', bId: 'c_gabriel', kind: 'family', label: 'Cousins' },
+
+  // Dev's people.
+  { aId: 'c_priya', bId: 'c_raj', kind: 'friend', label: 'College friends' },
+  { aId: 'c_raj', bId: 'c_theo', kind: 'friend', label: 'Roommates' },
+  { aId: 'c_priya', bId: 'c_grace', kind: 'friend', label: 'Med school friends' },
+  { aId: 'c_raj', bId: 'c_hassan', kind: 'friend', label: 'Chess club' },
+
+  // Tanya's.
+  { aId: 'c_marcus', bId: 'c_malik', kind: 'family', label: 'Cousins' },
+  { aId: 'c_marcus', bId: 'c_amara', kind: 'friend', label: 'Volunteer together' },
+  { aId: 'c_amara', bId: 'c_dee', kind: 'friend', label: 'Church friends' },
+  { aId: 'c_malik', bId: 'c_hannah', kind: 'friend', label: 'Made a record together' },
+
+  // Bex's.
+  { aId: 'c_sam', bId: 'c_rowan', kind: 'friend', label: 'Work friends' },
+  { aId: 'c_rowan', bId: 'c_june', kind: 'friend', label: 'Neighbours' },
+  { aId: 'c_june', bId: 'c_nina', kind: 'friend', label: 'Band friends' },
+  { aId: 'c_sam', bId: 'c_val', kind: 'friend', label: 'Bar regulars' },
+
+  // A few more so the graph isn't only within circles.
+  { aId: 'c_ruth', bId: 'c_delia', kind: 'friend', label: 'Dog park friends' },
+  { aId: 'c_isabel', bId: 'c_leila', kind: 'friend', label: 'Law school friends' },
+  { aId: 'c_jonah', bId: 'c_finn', kind: 'friend', label: 'Cycling club' },
+  { aId: 'c_ben', bId: 'c_carmen', kind: 'friend', label: 'Both work nights' },
+  { aId: 'c_omar', bId: 'c_marcus', kind: 'friend', label: 'Play ball together' },
+  { aId: 'c_elena', bId: 'c_carmen', kind: 'friend', label: 'Nurses together' },
+  { aId: 'c_tessa', bId: 'c_zoe', kind: 'friend', label: 'Climbing partners' },
+  { aId: 'c_kenji', bId: 'c_theo', kind: 'friend', label: 'Old coworkers' },
+  { aId: 'c_will', bId: 'c_finn', kind: 'family', label: 'Uncle and nephew' },
+  { aId: 'c_andre', bId: 'c_sofia', kind: 'friend', label: 'Film festival friends' },
+
+]
+
+/** Links between the sample family, loaded with them. */
+export const SAMPLE_CONNECTIONS: SeedLink[] = [
+  { aId: 'r_maya', bId: 'r_carla', kind: 'family', label: 'Cousins' },
+  { aId: 'r_nick', bId: 'r_jo', kind: 'friend', label: 'Same building' },
+  { aId: 'r_maya', bId: 'r_jo', kind: 'friend', label: 'Friends since the wedding' },
 ]

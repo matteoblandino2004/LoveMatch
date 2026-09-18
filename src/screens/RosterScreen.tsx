@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Person } from '../types'
+import type { Person, Tie } from '../types'
 import { useApp } from '../state/store'
 import { Avatar } from '../components/Avatar'
 import { Sheet } from '../components/Sheet'
@@ -7,6 +7,8 @@ import { ProfileDetail } from '../components/ProfileDetail'
 import { displayRelationship } from '../lib/people'
 import { buildDeck, eligibleCount } from '../lib/matchmaking'
 import { OCCASION_KINDS, whenLabel } from '../lib/occasions'
+import { PeopleSearch } from '../components/PeopleSearch'
+import { connectionsFor, searchPeople } from '../lib/connections'
 
 interface Props {
   onAdd: (kind: 'self' | 'other') => void
@@ -17,8 +19,12 @@ interface Props {
 
 /** Everyone you're matchmaking for — plus yourself, if you're in the game. */
 export function RosterScreen({ onAdd, onEdit, onSwipeFor, onAddOccasion }: Props) {
-  const { state } = useApp()
+  const { state, removeConnection } = useApp()
   const [open, setOpen] = useState<Person | null>(null)
+  const [linking, setLinking] = useState<{ person: Person; kind: Tie } | null>(null)
+  const [query, setQuery] = useState('')
+
+  const found = query.trim() ? searchPeople(state, query, { limit: 12 }) : []
 
   const roster = state.rosterIds.map((id) => state.people[id]).filter(Boolean)
   const hasSelf = roster.some((p) => p.managed?.kind === 'self')
@@ -32,7 +38,10 @@ export function RosterScreen({ onAdd, onEdit, onSwipeFor, onAddOccasion }: Props
       ? Math.round(likes.reduce((sum, s) => sum + s.score, 0) / likes.length)
       : 0
     const occasions = state.occasions.filter((o) => o.profileId === person.id && o.open)
+    const family = connectionsFor(state, person.id, 'family').length
+    const friends = connectionsFor(state, person.id, 'friend').length
     return {
+      family, friends,
       likes: likes.length, matches: matches.length, remaining, avg,
       pool: eligibleCount(state, person), occasions,
     }
@@ -85,6 +94,13 @@ export function RosterScreen({ onAdd, onEdit, onSwipeFor, onAddOccasion }: Props
                 <Stat value={s.remaining} label="left to see" />
               </div>
 
+              {(s.family > 0 || s.friends > 0) && (
+                <div className="chip-row" style={{ marginTop: 11 }}>
+                  {s.family > 0 && <span className="chip">🏡 {s.family} family</span>}
+                  {s.friends > 0 && <span className="chip">🤝 {s.friends} friends</span>}
+                </div>
+              )}
+
               {s.occasions.length > 0 && (
                 <div className="chip-row" style={{ marginTop: 11 }}>
                   {s.occasions.map((o) => (
@@ -122,6 +138,38 @@ export function RosterScreen({ onAdd, onEdit, onSwipeFor, onAddOccasion }: Props
         })}
       </div>
 
+      <div className="section-label">🔍 Look someone up</div>
+      <input
+        className="input"
+        type="search"
+        placeholder="Search everyone — name, city, work, interests"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      {query.trim() !== '' && (
+        <div style={{ marginTop: 10 }}>
+          {found.length === 0 ? (
+            <p className="tiny muted">Nobody matches that.</p>
+          ) : (
+            found.map((person) => (
+              <button className="row" key={person.id} onClick={() => setOpen(person)}>
+                <Avatar person={person} size={40} />
+                <div className="row-main">
+                  <div className="row-title" style={{ fontSize: 14.5 }}>
+                    {person.name}, {person.age}
+                    {person.managed && <span className="chip tiny">your roster</span>}
+                  </div>
+                  <div className="row-sub">
+                    {person.job || person.education} · {person.city}
+                  </div>
+                </div>
+                <span className="muted">›</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+
       <div className="section-label">Add someone</div>
       <div className="stack">
         <button className="row" onClick={() => onAdd('other')}>
@@ -145,30 +193,47 @@ export function RosterScreen({ onAdd, onEdit, onSwipeFor, onAddOccasion }: Props
       <Sheet open={!!open} onClose={() => setOpen(null)} labelledBy="profile-sheet-title">
         {open && (
           <>
-            <ProfileDetail person={open} />
+            <ProfileDetail
+              person={open}
+              onOpenPerson={(person) => setOpen(person)}
+              onAddToCircle={open.managed ? (kind) => setLinking({ person: open, kind }) : undefined}
+              onRemoveConnection={open.managed ? removeConnection : undefined}
+            />
             <div className="sheet-actions">
-              <div style={{ display: 'flex', gap: 9 }}>
-                <button
-                  className="btn btn-ghost"
-                  onClick={() => {
-                    onEdit(open)
-                    setOpen(null)
-                  }}
-                >
-                  Edit
+              {open.managed ? (
+                <div style={{ display: 'flex', gap: 9 }}>
+                  <button
+                    className="btn btn-ghost"
+                    onClick={() => {
+                      onEdit(open)
+                      setOpen(null)
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="btn btn-primary btn-block"
+                    onClick={() => {
+                      onSwipeFor(open.id)
+                      setOpen(null)
+                    }}
+                  >
+                    Swipe for {open.name}
+                  </button>
+                </div>
+              ) : (
+                <button className="btn btn-ghost btn-block" onClick={() => setOpen(null)}>
+                  Done
                 </button>
-                <button
-                  className="btn btn-primary btn-block"
-                  onClick={() => {
-                    onSwipeFor(open.id)
-                    setOpen(null)
-                  }}
-                >
-                  Swipe for {open.name}
-                </button>
-              </div>
+              )}
             </div>
           </>
+        )}
+      </Sheet>
+
+      <Sheet open={!!linking} onClose={() => setLinking(null)}>
+        {linking && (
+          <PeopleSearch subject={linking.person} kind={linking.kind} onDone={() => setLinking(null)} />
         )}
       </Sheet>
     </div>

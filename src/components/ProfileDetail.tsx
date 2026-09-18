@@ -1,7 +1,8 @@
-import type { Occasion, Person } from '../types'
+import type { Occasion, Person, Tie } from '../types'
 import { compatibility, describePreferences, failedDealbreakers } from '../lib/compatibility'
 import { Avatar } from './Avatar'
 import { PhotoStrip } from './Photos'
+import { CirclePanel } from './CirclePanel'
 import { FacetList, ScoreRing } from './Meter'
 import {
   FREQUENCY_LABELS, INTENT_LABELS, KIDS_LABELS, PET_LABELS, POLITICS_LABELS,
@@ -20,10 +21,18 @@ interface Props {
   onCheckRoster?: () => void
   /** When set, also show how this person suits that specific occasion. */
   occasion?: Occasion | null
+  /** Walk to someone in this person's family or friends. */
+  onOpenPerson?: (person: Person) => void
+  /** Offered only where the viewer can edit this person's circle. */
+  onAddToCircle?: (kind: Tie) => void
+  onRemoveConnection?: (connectionId: string) => void
 }
 
 /** Everything about one person, plus how they line up with `viewer`. */
-export function ProfileDetail({ person, viewer, onOpenCircle, onCheckRoster, occasion }: Props) {
+export function ProfileDetail({
+  person, viewer, onOpenCircle, onCheckRoster, occasion, onOpenPerson, onAddToCircle,
+  onRemoveConnection,
+}: Props) {
   const compat = viewer && viewer.id !== person.id ? compatibility(viewer, person) : null
   const fit = occasion && viewer ? occasionFit(occasion, viewer, person) : null
   const km = viewer ? distanceBetween(viewer.city, person.city) : null
@@ -206,6 +215,23 @@ export function ProfileDetail({ person, viewer, onOpenCircle, onCheckRoster, occ
           </div>
         </>
       )}
+
+      <CirclePanel
+        person={person}
+        kind="family"
+        onOpenPerson={onOpenPerson}
+        onAdd={onAddToCircle ? () => onAddToCircle('family') : undefined}
+        scoreAgainst={viewer}
+        onRemove={onRemoveConnection}
+      />
+      <CirclePanel
+        person={person}
+        kind="friend"
+        onOpenPerson={onOpenPerson}
+        onAdd={onAddToCircle ? () => onAddToCircle('friend') : undefined}
+        scoreAgainst={viewer}
+        onRemove={onRemoveConnection}
+      />
 
       {person.prompts.length > 0 && (
         <>

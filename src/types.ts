@@ -189,6 +189,23 @@ export interface ManagedInfo {
   consented: boolean
 }
 
+/** How two people in the app know each other. */
+export type Tie = 'family' | 'friend'
+
+/**
+ * A link between two people. One record covers both directions — the label is
+ * written symmetrically ("Cousins", "College roommates") so it reads correctly
+ * from either side.
+ */
+export interface Connection {
+  id: string
+  aId: string
+  bId: string
+  kind: Tie
+  label: string
+  createdAt: number
+}
+
 export type SwipeDirection = 'like' | 'pass'
 
 export interface Swipe {
@@ -265,6 +282,8 @@ export interface AppState {
   matches: Match[]
   occasions: Occasion[]
   invites: Invite[]
+  /** Everyone's family and friends, as links between two people. */
+  connections: Connection[]
   notifications: AppNotification[]
   /** The roster profile you're currently swiping for. */
   activeProfileId: string | null

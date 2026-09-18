@@ -1,9 +1,10 @@
 import type { AppState } from '../types'
-import { COMMUNITY } from './seed'
+import { COMMUNITY, COMMUNITY_CONNECTIONS } from './seed'
+import { makeConnection } from './connections'
 import { defaultPreferences } from './people'
 
 const KEY = 'wingman.state.v1'
-export const STATE_VERSION = 4
+export const STATE_VERSION = 5
 
 export function emptyState(): AppState {
   const people: Record<string, (typeof COMMUNITY)[number]> = {}
@@ -18,6 +19,7 @@ export function emptyState(): AppState {
     matches: [],
     occasions: [],
     invites: [],
+    connections: COMMUNITY_CONNECTIONS.map((l) => makeConnection(l.aId, l.bId, l.kind, l.label)),
     notifications: [],
     activeProfileId: null,
     version: STATE_VERSION,
@@ -86,6 +88,10 @@ function migrate(parsed: AppState): AppState | null {
       }),
     )
     state = { ...state, people, version: 4 }
+  }
+  if (state.version === 4) {
+    // v5 added family and friend links between people.
+    state = { ...state, connections: emptyState().connections, version: 5 }
   }
   return state.version === STATE_VERSION ? state : null
 }

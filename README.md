@@ -20,7 +20,7 @@ Xcode and sign with your Apple Developer account. See [docs/IOS.md](docs/IOS.md)
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 77 unit tests over the scoring engines, circles, occasions and the reducer
+npm test         # 92 unit tests over the scoring engines, circles, occasions and the reducer
 npm run build    # typecheck + production bundle into dist/
 npm run preview  # serve the built bundle
 npm run ios      # build, sync and open the iOS app in Xcode (macOS)
@@ -85,6 +85,22 @@ You can ask several people at once, but one date is all it needs: the first yes 
 everyone still waiting has their invitation withdrawn rather than piling up three dates for one
 wedding.
 
+**Family and friends — the real way people get set up.** Every profile has a **Family** section and
+a **Friends** section, and everyone in the app has both. Open a candidate and you can see who they're
+related to and who they run with, each one scored against the person you're swiping for — so when
+Luca is a 62 for your sister but his friend Daniel is a 99, you find that out from Luca's profile
+rather than never.
+
+Tapping anyone in those sections opens *their* profile, which has its own family and friends, so you
+can walk the graph as far as it goes and send the like from wherever you land. Adding people is a
+search over everyone in the app by **name, city, work or interests**, and links are stored once and
+read from both sides: label them the way they'd read to either person ("cousins", not "my cousin").
+
+Walking the graph can reach people the deck filtered out for failing a dealbreaker. The app says so
+plainly — *"Maya's dealbreakers rule this out: they smoke"* — and the like button becomes *"Against
+Maya's rules — send anyway"*, because the rule is real but a matchmaker is a person who can overrule
+it.
+
 **Matchmaker circles — the "is there someone better?" problem.** Nobody is matchmaking for exactly
 one person, and that cuts both ways:
 
@@ -137,6 +153,7 @@ src/
     compatibility.ts        the scoring engine (pure, tested)
     matchmaking.ts          deck building + the reciprocity simulation (pure, tested)
     circles.ts              matchmaker circles + "who fits this person best?" ranking (pure, tested)
+    connections.ts          the family/friend graph and people search (pure, tested)
     occasions.ts            occasion kinds, occasion-fit scoring, invitations (pure, tested)
     photos.ts               IndexedDB photo store, downscaling and re-encoding
     geo.ts                  city gazetteer + haversine distance
@@ -147,8 +164,8 @@ src/
     storage.ts              localStorage load/save with a version gate
     options.ts, id.ts, time.ts
   state/store.tsx           one reducer, one context, all state transitions (tested)
-  components/               SwipeDeck (pointer-event drag), Photos, CircleSheet, ProfileDetail,
-                            Sheet, Avatar, Meter
+  components/               SwipeDeck (pointer-event drag), Photos, CircleSheet, CirclePanel,
+                            PeopleSearch, ProfileDetail, Sheet, Avatar, Meter
   screens/                  Onboarding, Swipe, Roster, Events, Matches, Notifications,
                             ProfileEditor, OccasionEditor
 ios/                        the Capacitor iOS app — open App.xcworkspace in Xcode

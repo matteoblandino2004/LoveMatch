@@ -3,15 +3,17 @@ import {
   type ReactNode,
 } from 'react'
 import type {
-  AppNotification, AppState, Invite, InviteStatus, Match, Occasion, Person, SwipeDirection,
+  AppNotification, AppState, Connection, Invite, InviteStatus, Match, Occasion, Person,
+  SwipeDirection, Tie,
 } from '../types'
 import { clearState, emptyState, loadState, saveState } from '../lib/storage'
 import { clearAllPhotos, deletePhotos } from '../lib/photos'
 import { decideReciprocal } from '../lib/matchmaking'
 import { OCCASION_KINDS, decideInvite, whenLabel } from '../lib/occasions'
 import { uid } from '../lib/id'
-import { SAMPLE_OCCASIONS, SAMPLE_ROSTER } from '../lib/seed'
+import { SAMPLE_CONNECTIONS, SAMPLE_OCCASIONS, SAMPLE_ROSTER } from '../lib/seed'
 import { displayRelationship } from '../lib/people'
+import { involves, makeConnection } from '../lib/connections'
 
 type Action =
   | { type: 'account/create'; name: string }
@@ -35,6 +37,8 @@ type Action =
       targetId: string
       score: number
     }
+  | { type: 'connection/add'; aId: string; bId: string; kind: Tie; label: string }
+  | { type: 'connection/remove'; id: string }
   | { type: 'occasion/save'; occasion: Occasion }
   | { type: 'occasion/setOpen'; id: string; open: boolean }
   | { type: 'occasion/remove'; id: string }
@@ -111,6 +115,7 @@ function reducer(state: AppState, action: Action): AppState {
         matches: state.matches.filter((m) => m.profileId !== action.id),
         occasions: state.occasions.filter((o) => o.profileId !== action.id),
         invites: state.invites.filter((i) => i.profileId !== action.id),
+        connections: state.connections.filter((c) => !involves(c, action.id)),
         notifications: state.notifications.filter((n) => n.profileId !== action.id),
       }
     }
@@ -200,6 +205,27 @@ function reducer(state: AppState, action: Action): AppState {
         ),
       }
     }
+
+    case 'connection/add': {
+      if (action.aId === action.bId) return state
+      // One link per pair — adding it again just updates how they know each other.
+      const existing = state.connections.find(
+        (c) => involves(c, action.aId) && involves(c, action.bId),
+      )
+      if (existing) {
+        return {
+          ...state,
+          connections: state.connections.map((c) =>
+            c.id === existing.id ? { ...c, kind: action.kind, label: action.label.trim() } : c,
+          ),
+        }
+      }
+      const connection: Connection = makeConnection(action.aId, action.bId, action.kind, action.label)
+      return { ...state, connections: [connection, ...state.connections] }
+    }
+
+    case 'connection/remove':
+      return { ...state, connections: state.connections.filter((c) => c.id !== action.id) }
 
     case 'occasion/save': {
       const exists = state.occasions.some((o) => o.id === action.occasion.id)
@@ -318,11 +344,21 @@ function reducer(state: AppState, action: Action): AppState {
       for (const occasion of SAMPLE_OCCASIONS) {
         if (!occasions.some((o) => o.id === occasion.id)) occasions.push(occasion)
       }
+      const connections = [...state.connections]
+      for (const link of SAMPLE_CONNECTIONS) {
+        const exists = connections.some(
+          (c) => involves(c, link.aId) && involves(c, link.bId),
+        )
+        if (!exists && people[link.aId] && people[link.bId]) {
+          connections.push(makeConnection(link.aId, link.bId, link.kind, link.label))
+        }
+      }
       return {
         ...state,
         people,
         rosterIds,
         occasions,
+        connections,
         activeProfileId: state.activeProfileId ?? rosterIds[0] ?? null,
       }
     }
@@ -478,6 +514,8 @@ interface Store {
   }) => void
   undoSwipe: (profileId: string) => void
   recordSwipe: (args: { profileId: string; targetId: string; score: number }) => void
+  addConnection: (args: { aId: string; bId: string; kind: Tie; label: string }) => void
+  removeConnection: (id: string) => void
   saveOccasion: (occasion: Occasion) => void
   setOccasionOpen: (id: string, open: boolean) => void
   removeOccasion: (id: string) => void
@@ -533,6 +571,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       swipe: (args) => dispatch({ type: 'swipe', ...args }),
       undoSwipe: (profileId) => dispatch({ type: 'swipe/undo', profileId }),
       recordSwipe: (args) => dispatch({ type: 'swipe/record', ...args }),
+      addConnection: (args) => dispatch({ type: 'connection/add', ...args }),
+      removeConnection: (id) => dispatch({ type: 'connection/remove', id }),
       saveOccasion: (occasion) => dispatch({ type: 'occasion/save', occasion }),
       setOccasionOpen: (id, open) => dispatch({ type: 'occasion/setOpen', id, open }),
       removeOccasion: (id) => dispatch({ type: 'occasion/remove', id }),
