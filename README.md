@@ -9,18 +9,23 @@ a compatibility score that shows its work.
 
 You can also make a profile for yourself, swipe for yourself, and let your people swipe for you.
 
+It runs in a browser and as a real iOS app — the native project is in `ios/`, ready to open in
+Xcode and sign with your Apple Developer account. See [docs/IOS.md](docs/IOS.md).
+
 
 ## Running it
 
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 28 unit tests over the scoring engine and the reducer
+npm test         # 37 unit tests over the scoring engine, circles and the reducer
 npm run build    # typecheck + production bundle into dist/
 npm run preview  # serve the built bundle
+npm run ios      # build, sync and open the iOS app in Xcode (macOS)
 ```
 
-No backend, no API keys, no sign-up. Everything lives in `localStorage` on your device.
+No backend, no API keys, no sign-up. Profiles and swipes live in `localStorage`; photos live in
+IndexedDB. Nothing leaves the device — the app makes no network requests at all.
 
 ## What it does
 
@@ -29,9 +34,26 @@ your own. Each carries the usual dating-profile content (bio, photos-as-gradient
 lifestyle, what they're looking for) plus two things a normal dating app has no room for: *how you
 know them* and *your pitch as their matchmaker*.
 
+**Six photos per person.** Add up to six real photos to any profile. They're downscaled to 1440px
+and re-encoded before saving, so six cost about a megabyte rather than thirty. The first is the main
+photo; tap ◀ ▶ to reorder. Cards show them as a carousel — tap the upper half to flip through, tap
+down near the name for the full profile. Profiles with no photos still get their generated gradient.
+
 **Swiping as someone else.** Pick whose deck you're in from the switcher at the top of the swipe
 screen. Drag the card or use the buttons. ★ attaches a note from you — "you two would not stop
 talking" — which rides along with the like and shows up again if it becomes a match.
+
+**Matchmaker circles — the "is there someone better?" problem.** Nobody is matchmaking for exactly
+one person, and that cuts both ways:
+
+- Their side: a lot of people in the app were put there by *their* matchmaker. Tap **Set up by
+  Rosa** on a card and you get Rosa's whole circle — her cousin, her brother, her best friend —
+  each scored against the person you're swiping for. Daniel might be a 99, but his brother might
+  be the 77 you were actually going to swipe on.
+- Your side: **⇄ Better for someone else on your roster?** takes the candidate in front of you and
+  scores them against everyone *you're* setting up. Send the like from whoever actually fits — your
+  cousin instead of your sister — without leaving the card or switching profiles. People who aren't
+  open to each other are shown greyed out with the reason, rather than hidden.
 
 **A compatibility score that explains itself.** Every card carries a 0–100 score, and tapping it
 opens the breakdown: six weighted facets, each with a bar and a plain-English line of reasoning.
@@ -71,18 +93,31 @@ src/
   lib/
     compatibility.ts        the scoring engine (pure, tested)
     matchmaking.ts          deck building + the reciprocity simulation (pure, tested)
+    circles.ts              matchmaker circles + "who fits this person best?" ranking (pure, tested)
+    photos.ts               IndexedDB photo store, downscaling and re-encoding
     geo.ts                  city gazetteer + haversine distance
+    native.ts               iOS status bar and haptics; no-ops in a browser
     people.ts               profile factory and defaults
-    seed.ts                 35 community profiles + a sample family to try it with
+    seed.ts                 35 community profiles (12 of them in matchmaker circles)
+                            + a sample family to try it with
     storage.ts              localStorage load/save with a version gate
     options.ts, id.ts, time.ts
   state/store.tsx           one reducer, one context, all state transitions (tested)
-  components/               SwipeDeck (pointer-event drag), ProfileDetail, Sheet, Avatar, Meter
+  components/               SwipeDeck (pointer-event drag), Photos, CircleSheet, ProfileDetail,
+                            Sheet, Avatar, Meter
   screens/                  Onboarding, Swipe, Roster, Matches, Notifications, ProfileEditor
+ios/                        the Capacitor iOS app — open App.xcworkspace in Xcode
+docs/IOS.md                 signing, TestFlight and App Review notes
 ```
 
-React + TypeScript + Vite, and nothing else — the swipe gestures, the confetti, the bottom sheets
-and the generated avatars are all hand-rolled, so `npm install` pulls no UI dependencies.
+React + TypeScript + Vite, plus Capacitor for the iOS shell — and nothing else. The swipe gestures,
+the photo carousel, the confetti, the bottom sheets and the generated avatars are all hand-rolled,
+so `npm install` pulls no UI dependencies.
+
+Photos are the one thing that doesn't go in `localStorage`: six images per person across a roster
+would blow past the 5 MB quota, so the bytes live in IndexedDB and profiles carry only photo ids.
+Deleting a profile deletes its photos with it, and the store degrades to "no photos" rather than
+throwing if a browser blocks storage.
 
 State changes all go through one reducer, which makes the interesting behaviour testable without a
 DOM: adding a profile announces it, a matchmaker's like notifies the person, a delayed like sits in
@@ -97,6 +132,6 @@ checkbox — it's the whole premise. Set up people who want to be set up.
 
 ## Privacy
 
-Everything is on your device, in `localStorage`, under one key. There is no server, no account and
-no analytics. Clearing site data clears your roster; **Settings → Reset everything** does the same
-on purpose.
+Everything is on your device: profiles and swipes in `localStorage` under one key, photos in
+IndexedDB. There is no server, no account, no analytics and no network requests. Clearing site data
+clears your roster; **Settings → Reset everything** does the same on purpose, photos included.

@@ -4,6 +4,7 @@ import {
 } from 'react'
 import type { AppNotification, AppState, Match, Person, SwipeDirection } from '../types'
 import { clearState, emptyState, loadState, saveState } from '../lib/storage'
+import { clearAllPhotos, deletePhotos } from '../lib/photos'
 import { decideReciprocal } from '../lib/matchmaking'
 import { uid } from '../lib/id'
 import { SAMPLE_ROSTER } from '../lib/seed'
@@ -73,6 +74,8 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'profile/remove': {
       const people = { ...state.people }
+      // The profile's photos are bytes in IndexedDB — take them with it.
+      void deletePhotos(people[action.id]?.photos ?? [])
       delete people[action.id]
       const rosterIds = state.rosterIds.filter((id) => id !== action.id)
       return {
@@ -306,6 +309,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       loadSampleRoster: () => dispatch({ type: 'seed/sample' }),
       resetEverything: () => {
         clearState()
+        void clearAllPhotos()
         dispatch({ type: 'reset' })
       },
     }),

@@ -1,6 +1,7 @@
 import type { Person } from '../types'
 import { compatibility } from '../lib/compatibility'
 import { Avatar } from './Avatar'
+import { PhotoStrip } from './Photos'
 import { FacetList, ScoreRing } from './Meter'
 import {
   FREQUENCY_LABELS, INTENT_LABELS, KIDS_LABELS, PET_LABELS, POLITICS_LABELS,
@@ -9,8 +10,17 @@ import {
 import { distanceBetween } from '../lib/geo'
 import { displayRelationship } from '../lib/people'
 
+interface Props {
+  person: Person
+  viewer?: Person | null
+  /** Open this person's matchmaker's circle — the other people they're setting up. */
+  onOpenCircle?: () => void
+  /** Open your own roster, scored against this person. */
+  onCheckRoster?: () => void
+}
+
 /** Everything about one person, plus how they line up with `viewer`. */
-export function ProfileDetail({ person, viewer }: { person: Person; viewer?: Person | null }) {
+export function ProfileDetail({ person, viewer, onOpenCircle, onCheckRoster }: Props) {
   const compat = viewer && viewer.id !== person.id ? compatibility(viewer, person) : null
   const km = viewer ? distanceBetween(viewer.city, person.city) : null
 
@@ -34,7 +44,27 @@ export function ProfileDetail({ person, viewer }: { person: Person; viewer?: Per
         </div>
       </div>
 
+      <PhotoStrip person={person} />
+
       {person.bio && <p style={{ marginTop: 14 }}>{person.bio}</p>}
+
+      {person.circle && (
+        <div className="card" style={{ marginTop: 12, borderColor: 'rgba(255,196,107,0.35)' }}>
+          <div className="tiny muted">Set up by {person.circle.matchmaker} · {person.circle.relationship}</div>
+          <p style={{ marginTop: 6, fontSize: 14 }}>“{person.circle.pitch}”</p>
+          {onOpenCircle && (
+            <button className="btn btn-ghost btn-sm btn-block" style={{ marginTop: 11 }} onClick={onOpenCircle}>
+              See everyone {person.circle.matchmaker} is setting up ›
+            </button>
+          )}
+        </div>
+      )}
+
+      {onCheckRoster && (
+        <button className="btn btn-ghost btn-sm btn-block" style={{ marginTop: 12 }} onClick={onCheckRoster}>
+          ⇄ Who on your roster fits {person.name} best?
+        </button>
+      )}
 
       {person.managed?.pitch && (
         <div className="note-quote" style={{ marginTop: 12 }}>

@@ -7,6 +7,7 @@ import {
 } from '../lib/options'
 import { CITIES, findCity } from '../lib/geo'
 import { Avatar } from '../components/Avatar'
+import { PhotoEditor } from '../components/Photos'
 
 interface Props {
   initial: Person
@@ -87,7 +88,7 @@ export function ProfileEditor({ initial, onSave, onCancel, onDelete }: Props) {
     onSave(cleaned)
   }
 
-  const steps = ['Who', 'Life', 'Interests', 'Looking for']
+  const steps = ['Who', 'Life', 'Interests', 'Wants']
 
   return (
     <div>
@@ -120,6 +121,8 @@ export function ProfileEditor({ initial, onSave, onCancel, onDelete }: Props) {
 
       {step === 0 && (
         <div>
+          <PhotoEditor person={p} onChange={(photos) => set('photos', photos)} />
+
           {!isSelf && (
             <>
               <div className="field">

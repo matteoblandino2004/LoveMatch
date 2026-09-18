@@ -1,4 +1,5 @@
 import type { Person } from '../types'
+import { PhotoThumb } from './Photos'
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -7,11 +8,12 @@ function initials(name: string): string {
 }
 
 /**
- * Nobody uploads a photo to a local demo, so every profile gets a generated
- * one: a stable two-tone gradient derived from the profile's accent hue.
+ * A profile's face: their first photo when they have one, otherwise a stable
+ * two-tone gradient derived from the profile's accent hue.
  */
 export function Avatar({ person, size = 44 }: { person: Person; size?: number }) {
   const h = person.accent
+  const photo = person.photos[0]
   return (
     <div
       className="avatar"
@@ -23,12 +25,12 @@ export function Avatar({ person, size = 44 }: { person: Person; size?: number })
       }}
       aria-hidden="true"
     >
-      {initials(person.name)}
+      {photo ? <PhotoThumb id={photo} size={size} /> : initials(person.name)}
     </div>
   )
 }
 
-/** The full-card "photo" behind a swipe card. */
+/** The generated gradient behind a swipe card, shown when there's no photo. */
 export function PhotoBackdrop({ person }: { person: Person }) {
   const h = person.accent
   return (
@@ -42,21 +44,9 @@ export function PhotoBackdrop({ person }: { person: Person }) {
           linear-gradient(160deg, hsl(${h} 62% 42%), hsl(${(h + 330) % 360} 55% 22%))`,
       }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'grid',
-          placeItems: 'center',
-          paddingBottom: '22%',
-          fontSize: 120,
-          fontWeight: 900,
-          color: 'rgba(255,255,255,0.17)',
-          letterSpacing: '-0.05em',
-        }}
-      >
-        {initials(person.name)}
-      </div>
+      {person.photos.length === 0 && (
+        <div className="deck-monogram">{initials(person.name)}</div>
+      )}
     </div>
   )
 }

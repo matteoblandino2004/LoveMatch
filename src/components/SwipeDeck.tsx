@@ -1,11 +1,13 @@
 import {
-  forwardRef, useCallback, useImperativeHandle, useRef, useState, type PointerEvent,
+  forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type PointerEvent,
 } from 'react'
 import type { Person, SwipeDirection } from '../types'
 import type { DeckEntry } from '../lib/matchmaking'
+import { CardPhoto } from './Photos'
 import { PhotoBackdrop } from './Avatar'
 import { scoreLabel, sharedInterests } from '../lib/compatibility'
 import { distanceBetween } from '../lib/geo'
+import { haptic } from '../lib/native'
 
 export interface DeckHandle {
   fling: (direction: SwipeDirection) => void
@@ -16,26 +18,35 @@ interface Props {
   viewer: Person
   onDecide: (person: Person, direction: SwipeDirection) => void
   onOpen: (person: Person) => void
+  onOpenCircle: (person: Person) => void
 }
 
 const THRESHOLD = 105
+/** Above this fraction of the card, a tap flips photos; below it, opens the profile. */
+const PHOTO_ZONE = 0.62
 
 export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
-  { entries, viewer, onDecide, onOpen },
+  { entries, viewer, onDecide, onOpen, onOpenCircle },
   ref,
 ) {
   const [drag, setDrag] = useState({ x: 0, y: 0, active: false })
   const [exit, setExit] = useState<SwipeDirection | null>(null)
+  const [photoIndex, setPhotoIndex] = useState(0)
   const start = useRef<{ x: number; y: number } | null>(null)
   const moved = useRef(false)
   const busy = useRef(false)
 
   const top = entries[0]
+  const topId = top?.person.id
+
+  // A new card always starts on its first photo.
+  useEffect(() => setPhotoIndex(0), [topId])
 
   const commit = useCallback(
     (direction: SwipeDirection, person: Person) => {
       if (busy.current) return
       busy.current = true
+      haptic('swipe')
       setExit(direction)
       setDrag({ x: direction === 'like' ? 520 : -520, y: -40, active: false })
       window.setTimeout(() => {
@@ -70,15 +81,27 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
     setDrag({ x, y, active: true })
   }
 
-  function onPointerUp() {
+  function onPointerUp(e: PointerEvent<HTMLDivElement>) {
     if (!start.current || !top) return
     const { x } = drag
     start.current = null
+
     if (Math.abs(x) > THRESHOLD) {
       commit(x > 0 ? 'like' : 'pass', top.person)
+      return
+    }
+    setDrag({ x: 0, y: 0, active: false })
+    if (moved.current) return
+
+    // A tap: upper half flips through photos, lower half opens the profile.
+    const count = top.person.photos.length
+    const rect = e.currentTarget.getBoundingClientRect()
+    const relX = (e.clientX - rect.left) / rect.width
+    const relY = (e.clientY - rect.top) / rect.height
+    if (count > 1 && relY < PHOTO_ZONE) {
+      setPhotoIndex((i) => (relX < 0.5 ? (i - 1 + count) % count : (i + 1) % count))
     } else {
-      setDrag({ x: 0, y: 0, active: false })
-      if (!moved.current) onOpen(top.person)
+      onOpen(top.person)
     }
   }
 
@@ -113,6 +136,7 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
               style={style}
             >
               <PhotoBackdrop person={entry.person} />
+              <CardPhoto person={entry.person} index={isTop ? photoIndex : 0} />
               <div className="deck-scrim" />
               <div
                 className="deck-card-inner"
@@ -135,7 +159,7 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
                     </div>
                   </>
                 )}
-                <CardBody person={entry.person} viewer={viewer} />
+                <CardBody person={entry.person} viewer={viewer} onOpenCircle={onOpenCircle} />
               </div>
             </div>
           )
@@ -145,11 +169,30 @@ export const SwipeDeck = forwardRef<DeckHandle, Props>(function SwipeDeck(
   )
 })
 
-function CardBody({ person, viewer }: { person: Person; viewer: Person }) {
+function CardBody({
+  person, viewer, onOpenCircle,
+}: {
+  person: Person
+  viewer: Person
+  onOpenCircle: (person: Person) => void
+}) {
   const km = distanceBetween(viewer.city, person.city)
   const shared = sharedInterests(viewer, person).slice(0, 3)
   return (
     <div className="deck-body">
+      {person.circle && (
+        <button
+          className="chip chip-amber"
+          style={{ marginBottom: 9, cursor: 'pointer' }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation()
+            onOpenCircle(person)
+          }}
+        >
+          ★ Set up by {person.circle.matchmaker} — see who else they know ›
+        </button>
+      )}
       <div className="deck-name">
         {person.name} <span>{person.age}</span>
       </div>
@@ -170,7 +213,9 @@ function CardBody({ person, viewer }: { person: Person; viewer: Person }) {
         </div>
       )}
       <div className="tiny muted" style={{ marginTop: 10 }}>
-        Tap for the full profile and score breakdown
+        {person.photos.length > 1
+          ? 'Tap the photo to flip through · tap down here for the full profile'
+          : 'Tap for the full profile and score breakdown'}
       </div>
     </div>
   )

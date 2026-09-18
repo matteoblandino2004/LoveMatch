@@ -11,6 +11,7 @@ import { Sheet } from './components/Sheet'
 import { Avatar } from './components/Avatar'
 import { Confetti } from './components/Confetti'
 import { blankPerson, displayRelationship } from './lib/people'
+import { haptic, initNative } from './lib/native'
 import { scoreLabel } from './lib/compatibility'
 
 type Tab = 'swipe' | 'roster' | 'matches' | 'activity'
@@ -37,6 +38,7 @@ function Shell() {
     if (newest && newest.id !== lastMatchId.current) {
       lastMatchId.current = newest.id
       setCelebrating(newest)
+      haptic('match')
     }
   }, [state.matches])
 
@@ -233,6 +235,9 @@ function EditorSheet({
 }
 
 export default function App() {
+  useEffect(() => {
+    void initNative()
+  }, [])
   return (
     <AppProvider>
       <Shell />

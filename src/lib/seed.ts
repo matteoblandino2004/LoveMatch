@@ -18,6 +18,10 @@ export const COMMUNITY: Person[] = [
       { question: 'The way to win me over is', answer: 'Show up hungry and stay for the second plate.' },
       { question: 'My love language is', answer: 'Feeding you until you are angry about how full you are.' },
     ],
+    circle: {
+      id: 'mm_rosa', matchmaker: 'Rosa', relationship: 'Her cousin',
+      pitch: 'He cooks for everyone and feeds himself last. Somebody please notice him.',
+    },
   }),
   makePerson({
     id: 'c_priya', name: 'Priya', age: 29, gender: 'woman', interestedIn: ['man', 'woman'],
@@ -28,6 +32,10 @@ export const COMMUNITY: Person[] = [
     intent: 'long-term', ageMin: 27, ageMax: 38, maxDistanceKm: 50,
     lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'want', pets: 'dog', faith: 2, politics: 'left', socialEnergy: 3 },
     prompts: [{ question: 'I geek out on', answer: 'Explaining ear infections to four-year-olds using puppets.' }],
+    circle: {
+      id: 'mm_dev', matchmaker: 'Dev', relationship: 'His sister',
+      pitch: 'She saves children\'s lives at work and still texts me back. Be worthy.',
+    },
   }),
   makePerson({
     id: 'c_marcus', name: 'Marcus', age: 34, gender: 'man', interestedIn: ['woman'],
@@ -38,6 +46,10 @@ export const COMMUNITY: Person[] = [
     intent: 'long-term', ageMin: 27, ageMax: 38, maxDistanceKm: 45,
     lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'want', pets: 'none', faith: 4, politics: 'moderate', socialEnergy: 3 },
     prompts: [{ question: 'The one thing my family always says about me', answer: 'That I have never once been on time, and I have never once apologised for it.' }],
+    circle: {
+      id: 'mm_tanya', matchmaker: 'Tanya', relationship: 'Her brother',
+      pitch: 'He has been the most reliable man in my life for 34 years. Your move.',
+    },
   }),
   makePerson({
     id: 'c_sofia', name: 'Sofia', age: 27, gender: 'woman', interestedIn: ['man'],
@@ -48,6 +60,10 @@ export const COMMUNITY: Person[] = [
     intent: 'long-term-open', ageMin: 25, ageMax: 36, maxDistanceKm: 30,
     lifestyle: { drinking: 'often', smoking: 'sometimes', exercise: 'sometimes', kids: 'open', pets: 'cat', faith: 2, politics: 'left', socialEnergy: 4 },
     prompts: [{ question: 'My simple pleasures are', answer: 'An espresso standing up at the bar. Sitting down costs extra and I refuse.' }],
+    circle: {
+      id: 'mm_rosa', matchmaker: 'Rosa', relationship: 'Her best friend',
+      pitch: 'Funniest person I know in two languages. Do not let the cool exterior fool you.',
+    },
   }),
   makePerson({
     id: 'c_jonah', name: 'Jonah', age: 33, gender: 'man', interestedIn: ['woman', 'nonbinary'],
@@ -68,6 +84,10 @@ export const COMMUNITY: Person[] = [
     intent: 'long-term', ageMin: 28, ageMax: 40, maxDistanceKm: 45,
     lifestyle: { drinking: 'never', smoking: 'never', exercise: 'sometimes', kids: 'want', pets: 'none', faith: 5, politics: 'moderate', socialEnergy: 4 },
     prompts: [{ question: "I'll fall for you if", answer: 'You are kind to people who cannot do anything for you.' }],
+    circle: {
+      id: 'mm_tanya', matchmaker: 'Tanya', relationship: 'Her college roommate',
+      pitch: 'She organised my entire wedding while running a nonprofit. She is a force.',
+    },
   }),
   makePerson({
     id: 'c_theo', name: 'Theo', age: 28, gender: 'man', interestedIn: ['woman'],
@@ -78,6 +98,10 @@ export const COMMUNITY: Person[] = [
     intent: 'long-term-open', ageMin: 24, ageMax: 33, maxDistanceKm: 35,
     lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'sometimes', kids: 'open', pets: 'cat', faith: 1, politics: 'left', socialEnergy: 2 },
     prompts: [{ question: "Don't hate me if I", answer: 'Pick the restaurant before I pick the outfit. Every time.' }],
+    circle: {
+      id: 'mm_dev', matchmaker: 'Dev', relationship: 'His roommate',
+      pitch: 'Kindest person in our apartment, and he does the dishes unprompted.',
+    },
   }),
   makePerson({
     id: 'c_ruth', name: 'Ruth', age: 36, gender: 'woman', interestedIn: ['man', 'woman'],
@@ -98,6 +122,10 @@ export const COMMUNITY: Person[] = [
     intent: 'long-term-open', ageMin: 26, ageMax: 38, maxDistanceKm: 40,
     lifestyle: { drinking: 'often', smoking: 'sometimes', exercise: 'sometimes', kids: 'open', pets: 'none', faith: 2, politics: 'moderate', socialEnergy: 5 },
     prompts: [{ question: 'Two truths and a lie', answer: 'I met Nadal. I make my own limoncello. I have never cried at a wedding.' }],
+    circle: {
+      id: 'mm_rosa', matchmaker: 'Rosa', relationship: 'Her brother',
+      pitch: 'He works every night so he needs someone who plans the daytime. Worth it.',
+    },
   }),
   makePerson({
     id: 'c_nina', name: 'Nina', age: 26, gender: 'woman', interestedIn: ['man', 'woman', 'nonbinary'],
@@ -188,6 +216,10 @@ export const COMMUNITY: Person[] = [
     intent: 'long-term-open', ageMin: 23, ageMax: 35, maxDistanceKm: 25,
     lifestyle: { drinking: 'often', smoking: 'sometimes', exercise: 'sometimes', kids: 'dont-want', pets: 'cat', faith: 1, politics: 'left', socialEnergy: 4 },
     prompts: [{ question: 'My simple pleasures are', answer: 'Opening the kiln. It is Christmas or it is a funeral.' }],
+    circle: {
+      id: 'mm_bex', matchmaker: 'Bex', relationship: 'Their best friend',
+      pitch: 'Makes beautiful things and undersells every one of them.',
+    },
   }),
   makePerson({
     id: 'c_kenji', name: 'Kenji', age: 37, gender: 'man', interestedIn: ['woman'],
@@ -238,6 +270,10 @@ export const COMMUNITY: Person[] = [
     intent: 'long-term', ageMin: 26, ageMax: 36, maxDistanceKm: 40,
     lifestyle: { drinking: 'never', smoking: 'never', exercise: 'often', kids: 'want', pets: 'none', faith: 3, politics: 'moderate', socialEnergy: 2 },
     prompts: [{ question: 'My most irrational fear is', answer: 'Group photos where I have to decide what to do with my hands.' }],
+    circle: {
+      id: 'mm_dev', matchmaker: 'Dev', relationship: 'His best friend',
+      pitch: 'He is genuinely hilarious and genuinely bad at showing it in writing. Trust me.',
+    },
   }),
   makePerson({
     id: 'c_tessa', name: 'Tessa', age: 24, gender: 'woman', interestedIn: ['man', 'woman'],
@@ -298,6 +334,10 @@ export const COMMUNITY: Person[] = [
     intent: 'long-term', ageMin: 26, ageMax: 38, maxDistanceKm: 50,
     lifestyle: { drinking: 'never', smoking: 'never', exercise: 'sometimes', kids: 'want', pets: 'none', faith: 4, politics: 'moderate', socialEnergy: 4 },
     prompts: [{ question: 'The one thing my family always says about me', answer: 'That I have not answered a phone call since 2019. Texts only. I am working on it.' }],
+    circle: {
+      id: 'mm_tanya', matchmaker: 'Tanya', relationship: 'Her cousin',
+      pitch: 'Talented, loyal, and terrible at answering the phone. Text him.',
+    },
   }),
   makePerson({
     id: 'c_zoe', name: 'Zoe', age: 30, gender: 'woman', interestedIn: ['man', 'woman', 'nonbinary'],
@@ -318,6 +358,10 @@ export const COMMUNITY: Person[] = [
     intent: 'long-term', ageMin: 24, ageMax: 38, maxDistanceKm: 30,
     lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'sometimes', kids: 'open', pets: 'cat', faith: 1, politics: 'left', socialEnergy: 2 },
     prompts: [{ question: 'The way to win me over is', answer: 'Finish the book I gave you. That is it. That is the whole thing.' }],
+    circle: {
+      id: 'mm_bex', matchmaker: 'Bex', relationship: 'Their coworker',
+      pitch: 'Will remember what you said three weeks ago and ask how it went.',
+    },
   }),
   makePerson({
     id: 'c_val', name: 'Val', age: 33, gender: 'woman', interestedIn: ['woman', 'nonbinary'],
@@ -338,6 +382,10 @@ export const COMMUNITY: Person[] = [
     intent: 'friends-first', ageMin: 22, ageMax: 34, maxDistanceKm: 25,
     lifestyle: { drinking: 'sometimes', smoking: 'sometimes', exercise: 'sometimes', kids: 'dont-want', pets: 'cat', faith: 1, politics: 'left', socialEnergy: 3 },
     prompts: [{ question: 'My most irrational fear is', answer: 'Someone asking me to design their first tattoo at a party. It has happened four times.' }],
+    circle: {
+      id: 'mm_bex', matchmaker: 'Bex', relationship: 'Their sister',
+      pitch: 'Loud, loyal, and a complete softie under all that ink.',
+    },
   }),
   makePerson({
     id: 'c_hassan', name: 'Hassan', age: 36, gender: 'man', interestedIn: ['woman'],
@@ -403,6 +451,20 @@ export const SAMPLE_ROSTER: Person[] = [
     managed: {
       kind: 'other', relationship: 'My roommate', consented: true,
       pitch: 'They keep matching with people who do not read. I am fixing this personally.',
+    },
+  }),
+  makePerson({
+    id: 'r_carla', name: 'Carla', age: 33, gender: 'woman', interestedIn: ['man'],
+    city: 'Queens, NY', hometown: 'Rome, IT', job: 'Dental hygienist', education: 'Hunter',
+    heightCm: 170, accent: 330,
+    bio: 'Blunt, warm, and completely done with apps. Agreed to one more round because I begged.',
+    interests: ['Travel', 'Wine', 'Dancing', 'Trying new restaurants', 'Big family', 'Beach days', 'Cooking'],
+    intent: 'long-term', ageMin: 30, ageMax: 45, maxDistanceKm: 45,
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'open', pets: 'none', faith: 3, politics: 'moderate', socialEnergy: 4 },
+    prompts: [{ question: "I'll fall for you if", answer: 'You can hold your own with my mother. That is the only test.' }],
+    managed: {
+      kind: 'other', relationship: 'My cousin', consented: true,
+      pitch: 'Everyone says she is intimidating. She is not. She is just tall and says what she thinks.',
     },
   }),
 ]

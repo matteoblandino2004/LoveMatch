@@ -50,6 +50,8 @@ export interface Person {
   education: string
   heightCm: number
   bio: string
+  /** Photo ids — the bytes live in IndexedDB, see lib/photos.ts. Max 6. */
+  photos: string[]
   interests: string[]
   intent: Intent
   lifestyle: Lifestyle
@@ -62,7 +64,27 @@ export interface Person {
   createdAt: number
   /** Present when this profile lives on your roster. */
   managed?: ManagedInfo
+  /**
+   * Present when someone else is doing the setting up. Tapping it opens their
+   * circle — the other people that matchmaker is also trying to place.
+   */
+  circle?: Circle
 }
+
+/** A matchmaker and the people they're setting up. */
+export interface Circle {
+  /** Stable id shared by everyone this matchmaker manages. */
+  id: string
+  /** The matchmaker's name. */
+  matchmaker: string
+  /** How the matchmaker knows this person: "His cousin", "Her college roommate". */
+  relationship: string
+  /** Why the matchmaker thinks this person is worth meeting. */
+  pitch: string
+}
+
+/** The circle id used for the profiles you manage yourself. */
+export const MY_CIRCLE = 'mm_you'
 
 export interface ManagedInfo {
   /** 'self' when it's your own profile, otherwise someone you're setting up. */

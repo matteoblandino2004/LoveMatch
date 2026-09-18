@@ -3,11 +3,18 @@ import type { Person, SwipeDirection } from '../types'
 import { useApp } from '../state/store'
 import { buildDeck } from '../lib/matchmaking'
 import { compatibility } from '../lib/compatibility'
+import { circleFitFor, rosterFitFor, type Ranked } from '../lib/circles'
 import { SwipeDeck, type DeckHandle } from '../components/SwipeDeck'
 import { Sheet } from '../components/Sheet'
 import { ProfileDetail } from '../components/ProfileDetail'
+import { CircleSheet } from '../components/CircleSheet'
 import { Avatar } from '../components/Avatar'
 import { displayRelationship } from '../lib/people'
+
+/** Which "who else?" list is open: your own roster, or their matchmaker's people. */
+type CircleView =
+  | { kind: 'roster'; candidate: Person }
+  | { kind: 'theirs'; candidate: Person; circleId: string; matchmaker: string }
 
 export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
   const { state, setActiveProfile, swipe, undoSwipe } = useApp()
@@ -15,11 +22,18 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
   const [preview, setPreview] = useState<Person | null>(null)
   const [endorsing, setEndorsing] = useState<Person | null>(null)
   const [note, setNote] = useState('')
+  const [circleView, setCircleView] = useState<CircleView | null>(null)
 
   const roster = state.rosterIds.map((id) => state.people[id]).filter(Boolean)
   const active = state.activeProfileId ? state.people[state.activeProfileId] : null
 
   const deck = useMemo(() => (active ? buildDeck(state, active) : []), [state, active])
+
+  const circleEntries = useMemo<Ranked[]>(() => {
+    if (!circleView) return []
+    if (circleView.kind === 'roster') return rosterFitFor(state, circleView.candidate)
+    return active ? circleFitFor(state, active, circleView.circleId) : []
+  }, [circleView, state, active])
 
   if (!active) {
     return (
@@ -41,23 +55,45 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
   const asMatchmaker = active.managed?.kind === 'other'
   const canUndo = state.swipes.some((s) => s.profileId === active.id)
 
-  function decide(person: Person, direction: SwipeDirection, matchmakerNote?: string) {
-    if (!active) return
-    const score = compatibility(active, person).score
+  /** Swipe on `person` for a roster profile — the active one unless told otherwise. */
+  function decide(
+    person: Person,
+    direction: SwipeDirection,
+    opts: { matchmakerNote?: string; forProfile?: Person } = {},
+  ) {
+    const profile = opts.forProfile ?? active
+    if (!profile) return
+    const score = compatibility(profile, person).score
     swipe({
-      profileId: active.id,
+      profileId: profile.id,
       targetId: person.id,
       direction,
-      byMatchmaker: asMatchmaker,
-      note: matchmakerNote?.trim() || undefined,
+      byMatchmaker: profile.managed?.kind === 'other',
+      note: opts.matchmakerNote?.trim() || undefined,
       score,
     })
     setPreview(null)
   }
 
+  function openTheirCircle(person: Person) {
+    if (!person.circle) return
+    setPreview(null)
+    setCircleView({
+      kind: 'theirs',
+      candidate: person,
+      circleId: person.circle.id,
+      matchmaker: person.circle.matchmaker,
+    })
+  }
+
+  function openRosterFit(person: Person) {
+    setPreview(null)
+    setCircleView({ kind: 'roster', candidate: person })
+  }
+
   function endorse() {
     if (!endorsing) return
-    decide(endorsing, 'like', note)
+    decide(endorsing, 'like', { matchmakerNote: note })
     setEndorsing(null)
     setNote('')
   }
@@ -132,6 +168,7 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
             viewer={active}
             onDecide={(person, direction) => decide(person, direction)}
             onOpen={(person) => setPreview(person)}
+            onOpenCircle={openTheirCircle}
           />
           <div className="deck-actions">
             <button
@@ -168,6 +205,17 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
               ♥
             </button>
           </div>
+
+          {roster.length > 1 && (
+            <button
+              className="btn btn-ghost btn-block"
+              style={{ marginTop: 12 }}
+              onClick={() => openRosterFit(deck[0].person)}
+            >
+              ⇄ Better for someone else on your roster?
+            </button>
+          )}
+
           <p className="tiny muted center" style={{ marginTop: 10 }}>
             Drag the card, or use the buttons. ★ sends it with a note from you.
           </p>
@@ -177,7 +225,12 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
       <Sheet open={!!preview} onClose={() => setPreview(null)} labelledBy="profile-sheet-title">
         {preview && (
           <>
-            <ProfileDetail person={preview} viewer={active} />
+            <ProfileDetail
+              person={preview}
+              viewer={active}
+              onOpenCircle={() => openTheirCircle(preview)}
+              onCheckRoster={roster.length > 1 ? () => openRosterFit(preview) : undefined}
+            />
             <div className="sheet-actions">
               <div style={{ display: 'flex', gap: 9 }}>
                 <button className="btn btn-ghost" onClick={() => decide(preview, 'pass')}>
@@ -189,6 +242,46 @@ export function SwipeScreen({ onAddProfile }: { onAddProfile: () => void }) {
               </div>
             </div>
           </>
+        )}
+      </Sheet>
+
+      <Sheet open={!!circleView} onClose={() => setCircleView(null)}>
+        {circleView?.kind === 'roster' && (
+          <CircleSheet
+            title={`Who fits ${circleView.candidate.name} best?`}
+            subtitle={`Everyone on your roster, scored against ${circleView.candidate.name}. Send the like from whoever actually fits — it doesn't have to be ${active.name}.`}
+            entries={circleEntries}
+            anchor={circleView.candidate}
+            highlightId={active.id}
+            emptyText="Add another profile to compare"
+            actionLabel={(entry) => `♥ Like for ${entry.person.name}`}
+            onAction={(entry) => {
+              decide(circleView.candidate, 'like', { forProfile: entry.person })
+              setCircleView(null)
+            }}
+            onOpenProfile={(entry) => {
+              setCircleView(null)
+              setPreview(entry.person)
+            }}
+          />
+        )}
+        {circleView?.kind === 'theirs' && (
+          <CircleSheet
+            title={`${circleView.matchmaker}'s circle`}
+            subtitle={`${circleView.matchmaker} is setting up more than one person. Here's everyone they know, scored against ${active.name} — ${circleView.candidate.name} might not be the best of them.`}
+            entries={circleEntries}
+            anchor={active}
+            emptyText={`${circleView.matchmaker} isn't setting up anyone else`}
+            actionLabel={() => `♥ Like for ${active.name}`}
+            onAction={(entry) => {
+              decide(entry.person, 'like')
+              setCircleView(null)
+            }}
+            onOpenProfile={(entry) => {
+              setCircleView(null)
+              setPreview(entry.person)
+            }}
+          />
         )}
       </Sheet>
 

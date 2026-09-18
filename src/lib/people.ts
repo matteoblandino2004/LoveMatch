@@ -22,6 +22,7 @@ export function makePerson(draft: PersonDraft): Person {
     education: draft.education ?? '',
     heightCm: draft.heightCm ?? 170,
     bio: draft.bio ?? '',
+    photos: draft.photos ?? [],
     interests: draft.interests ?? [],
     intent: draft.intent ?? 'long-term',
     lifestyle: {
@@ -42,6 +43,7 @@ export function makePerson(draft: PersonDraft): Person {
     maxDistanceKm: draft.maxDistanceKm ?? 60,
     createdAt: draft.createdAt ?? Date.now(),
     managed: draft.managed,
+    circle: draft.circle,
   }
   return base
 }
