@@ -1,8 +1,8 @@
-# 💘 LoveMatch
+# 🪽 Wingman
 
-A dating app you use **for other people**.
+A dating app you use **for other people**. Be someone's wingman.
 
-Tinder and Hinge assume the person swiping is the person dating. LoveMatch doesn't. You make a
+Tinder and Hinge assume the person swiping is the person dating. Wingman doesn't. You make a
 profile for your sister, your best friend, your cousin who swears he's fine — as many as you want —
 and you swipe on their behalf. When the other side swipes back, everyone gets the notification, with
 a compatibility score that shows its work.
@@ -20,7 +20,7 @@ Xcode and sign with your Apple Developer account. See [docs/IOS.md](docs/IOS.md)
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 64 unit tests over the scoring engines, circles, occasions and the reducer
+npm test         # 77 unit tests over the scoring engines, circles, occasions and the reducer
 npm run build    # typecheck + production bundle into dist/
 npm run preview  # serve the built bundle
 npm run ios      # build, sync and open the iOS app in Xcode (macOS)
@@ -44,6 +44,17 @@ down near the name for the full profile. Profiles with no photos still get their
 **Swiping as someone else.** Pick whose deck you're in from the switcher at the top of the swipe
 screen. Drag the card or use the buttons. ★ attaches a note from you — "you two would not stop
 talking" — which rides along with the like and shows up again if it becomes a match.
+
+**Their type — the preferences you'd actually list.** Every profile carries what that person is
+looking for: an age range, a height range, hair colours, how far they'll travel. Those feed a "Their
+type" slice of the compatibility score, counted *both ways* — someone who fits your sister's type but
+whose own type she doesn't fit isn't a match, and the score says so.
+
+Separately there are **dealbreakers**, which are hard rules rather than points: no smokers, must want
+kids, must not want kids, no one who already has kids, nearby only. Anyone who fails one never
+appears in that person's deck at all, and where they do show up — in a circle list, say — the app
+names the rule they failed instead of silently hiding them. They're one-directional: your rules
+filter your deck, not theirs.
 
 **Occasions — a real thing on the calendar.** "Let's grab a drink sometime" is how nothing happens.
 Give someone on your roster something to go to, and the app finds a date *for that*:
@@ -100,12 +111,13 @@ sides get the match — with the score, the matchmaker's note, and a ready-to-se
 
 | Facet | Weight | What moves it |
 |---|---:|---|
-| Shared interests | 24 | Overlapping interests; four in common is already a strong signal |
-| What they want | 18 | A matrix over intent — serious, casual, friends first, figuring it out |
-| Lifestyle | 16 | Kids (45% of the facet on its own), drinking, smoking, exercise, pets |
-| Age | 14 | The gap, hard-capped when either side's stated range is violated |
-| Location | 14 | Real distance between cities via haversine, then hometown as a bonus |
-| Values & energy | 14 | Politics, how central faith is, and social battery |
+| Shared interests | 22 | Overlapping interests; four in common is already a strong signal |
+| What they want | 16 | A matrix over intent — serious, casual, friends first, figuring it out |
+| Lifestyle | 14 | Kids (45% of the facet on its own), drinking, smoking, exercise, pets |
+| Their type | 14 | Height, hair and age against what each of them said they're after, both ways |
+| Age | 12 | The gap, hard-capped when either side's stated range is violated |
+| Location | 12 | Real distance between cities via haversine, then hometown as a bonus |
+| Values & energy | 10 | Politics, how central faith is, and social battery |
 
 It's deterministic and symmetric — `compatibility(a, b).score === compatibility(b, a).score` — and
 covered by tests, including the invariant that the weights sum to exactly 100.

@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>LoveMatch</string>
+        <string>Wingman</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,9 +27,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>LoveMatch needs your photo library so you can add photos to a profile you are building — for yourself or for someone you are setting up.</string>
+	<string>Wingman needs your photo library so you can add photos to a profile you are building — for yourself or for someone you are setting up.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>LoveMatch needs the camera so you can take a new photo for a profile instead of picking an existing one.</string>
+	<string>Wingman needs the camera so you can take a new photo for a profile instead of picking an existing one.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

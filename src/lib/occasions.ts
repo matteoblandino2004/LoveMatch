@@ -138,9 +138,9 @@ export function occasionFit(occasion: Occasion, host: Person, candidate: Person)
     travelDetail = `Already in ${occasion.city}`
     reasons.push(`Lives in ${occasion.city}`)
   } else if (km !== null) {
-    travel = clamp01(1 - km / Math.max(candidate.maxDistanceKm * 2.5, 80))
+    travel = clamp01(1 - km / Math.max(candidate.prefs.maxDistanceKm * 2.5, 80))
     travelDetail = `${km} km from ${occasion.city}`
-    if (km > candidate.maxDistanceKm * 2) {
+    if (km > candidate.prefs.maxDistanceKm * 2) {
       warnings.push(`${occasion.city} is a long way from ${candidate.city}`)
     }
     if (km > 400 && candidate.interests.includes('Travel')) {

@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'com.lovematch.app',
-  appName: 'LoveMatch',
+  appId: 'com.wingman.app',
+  appName: 'Wingman',
   webDir: 'dist',
   ios: {
     // The app paints its own dark background behind the safe areas.

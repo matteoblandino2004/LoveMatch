@@ -100,7 +100,7 @@ function Shell() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="wordmark">LoveMatch</div>
+        <div className="wordmark">Wingman</div>
         <div style={{ flex: 1 }} />
         <button className="btn btn-ghost btn-sm" onClick={() => setSettings(true)}>
           {state.account.name} ⚙︎

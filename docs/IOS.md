@@ -1,4 +1,4 @@
-# Shipping LoveMatch to the App Store
+# Shipping Wingman to the App Store
 
 The iOS project is already in this repo at `ios/`. It's a [Capacitor](https://capacitorjs.com)
 wrapper: the React app you run with `npm run dev` is the same code that runs inside the native
@@ -27,8 +27,8 @@ In Xcode, select the **App** target → **Signing & Capabilities**:
 
 - Tick **Automatically manage signing**.
 - **Team**: your Apple Developer team.
-- **Bundle Identifier**: currently `com.lovematch.app`. Change it to something you own in reverse
-  domain form, e.g. `com.yourname.lovematch`. If you change it here, change `appId` in
+- **Bundle Identifier**: currently `com.wingman.app`. Change it to something you own in reverse
+  domain form, e.g. `com.yourname.wingman`. If you change it here, change `appId` in
   `capacitor.config.ts` to match so future syncs don't fight you.
 
 That's all the signing this app needs — no push notifications, no iCloud, no App Groups, because
@@ -47,8 +47,8 @@ loop while developing UI, just use `npm run dev` in the browser — the app is t
 
 | Thing | Where | Value |
 |---|---|---|
-| Display name | `ios/App/App/Info.plist` | LoveMatch |
-| Bundle id | Xcode target / `capacitor.config.ts` | `com.lovematch.app` |
+| Display name | `ios/App/App/Info.plist` | Wingman |
+| Bundle id | Xcode target / `capacitor.config.ts` | `com.wingman.app` |
 | Orientation | `Info.plist` | Portrait only |
 | Appearance | `Info.plist` | `UIUserInterfaceStyle: Dark` |
 | Photo permission | `Info.plist` | `NSPhotoLibraryUsageDescription` |
@@ -96,7 +96,7 @@ A few things App Review will specifically care about for this app:
 
 ### Review notes worth pasting
 
-> LoveMatch is an offline dating app for matchmakers: you build profiles for friends and family,
+> Wingman is an offline dating app for matchmakers: you build profiles for friends and family,
 > swipe on their behalf, and find them dates for specific occasions like a wedding or a double date. It has no server, no accounts and makes no network requests — all profiles,
 > photos, swipes and matches are stored locally on the device. The other profiles in the app are
 > fictional sample data bundled with the build. To see the app populated, tap "Just show me — load a

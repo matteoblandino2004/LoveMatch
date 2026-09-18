@@ -1,5 +1,5 @@
 import type { Occasion, Person } from '../types'
-import { compatibility } from '../lib/compatibility'
+import { compatibility, describePreferences, failedDealbreakers } from '../lib/compatibility'
 import { Avatar } from './Avatar'
 import { PhotoStrip } from './Photos'
 import { FacetList, ScoreRing } from './Meter'
@@ -9,7 +9,7 @@ import {
 } from '../lib/options'
 import { distanceBetween } from '../lib/geo'
 import { OCCASION_KINDS, blendScore, fitLabel, occasionFit, whenLabel } from '../lib/occasions'
-import { displayRelationship } from '../lib/people'
+import { HAIR_LABELS, displayRelationship } from '../lib/people'
 
 interface Props {
   person: Person
@@ -174,11 +174,21 @@ export function ProfileDetail({ person, viewer, onOpenCircle, onCheckRoster, occ
         <span className="chip">🙏 {FAITH_LABELS[person.lifestyle.faith - 1]}</span>
         <span className="chip">🗳️ {POLITICS_LABELS[person.lifestyle.politics]}</span>
         <span className="chip">🔋 {SOCIAL_LABELS[person.lifestyle.socialEnergy - 1]}</span>
+        <span className="chip">💇 {HAIR_LABELS[person.hair]} hair</span>
         {person.job && <span className="chip">💼 {person.job}</span>}
         {person.education && <span className="chip">🎓 {person.education}</span>}
         {person.hometown && <span className="chip">📍 From {person.hometown}</span>}
         <span className="chip">📏 {person.heightCm} cm</span>
       </div>
+
+      <div className="section-label">Looking for</div>
+      <div className="card tiny">{describePreferences(person)}</div>
+      {viewer && failedDealbreakers(viewer, person).length > 0 && (
+        <div className="card tiny" style={{ marginTop: 8, borderColor: 'rgba(255,107,129,0.45)' }}>
+          <b>{viewer.name}'s dealbreakers rule this out:</b>{' '}
+          {failedDealbreakers(viewer, person).join(', ').toLowerCase()}
+        </div>
+      )}
 
       {person.interests.length > 0 && (
         <>

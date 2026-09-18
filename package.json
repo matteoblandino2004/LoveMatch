@@ -1,9 +1,9 @@
 {
-  "name": "lovematch",
+  "name": "wingman",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Matchmaking for the people you love — swipe for your friends and family, or for yourself.",
+  "description": "Be someone's wingman — build profiles for your friends and family, swipe on their behalf, and find them a date for the wedding.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

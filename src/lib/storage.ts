@@ -1,8 +1,9 @@
 import type { AppState } from '../types'
 import { COMMUNITY } from './seed'
+import { defaultPreferences } from './people'
 
-const KEY = 'lovematch.state.v1'
-export const STATE_VERSION = 3
+const KEY = 'wingman.state.v1'
+export const STATE_VERSION = 4
 
 export function emptyState(): AppState {
   const people: Record<string, (typeof COMMUNITY)[number]> = {}
@@ -63,6 +64,28 @@ function migrate(parsed: AppState): AppState | null {
   if (state.version === 2) {
     // v3 added occasions and invitations.
     state = { ...state, occasions: [], invites: [], version: 3 }
+  }
+  if (state.version === 3) {
+    // v4 moved age and distance into a preferences object and added hair,
+    // height range and dealbreakers alongside them.
+    const people = Object.fromEntries(
+      Object.entries(state.people).map(([id, person]) => {
+        const legacy = person as unknown as { ageMin?: number; ageMax?: number; maxDistanceKm?: number }
+        return [
+          id,
+          {
+            ...person,
+            hair: person.hair ?? 'brown',
+            prefs: person.prefs ?? defaultPreferences(person.age, {
+              ageMin: legacy.ageMin,
+              ageMax: legacy.ageMax,
+              maxDistanceKm: legacy.maxDistanceKm,
+            }),
+          },
+        ]
+      }),
+    )
+    state = { ...state, people, version: 4 }
   }
   return state.version === STATE_VERSION ? state : null
 }

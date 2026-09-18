@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Gender, Intent, Person, Prompt } from '../types'
+import type { Dealbreaker, Gender, HairColor, Intent, Person, Preferences, Prompt } from '../types'
 import {
   FAITH_LABELS, FREQUENCY_LABELS, GENDER_LABELS, INTENT_LABELS,
   INTEREST_GROUPS, KIDS_LABELS, PET_LABELS, POLITICS_LABELS, PROMPT_QUESTIONS,
@@ -7,6 +7,7 @@ import {
 } from '../lib/options'
 import { CITIES, findCity } from '../lib/geo'
 import { Avatar } from '../components/Avatar'
+import { HAIR_LABELS } from '../lib/people'
 import { PhotoEditor } from '../components/Photos'
 
 interface Props {
@@ -17,6 +18,15 @@ interface Props {
 }
 
 const GENDERS: Gender[] = ['woman', 'man', 'nonbinary']
+const HAIRS = Object.keys(HAIR_LABELS) as HairColor[]
+
+const DEALBREAKERS: { id: Dealbreaker; label: string; note: string }[] = [
+  { id: 'no-smokers', label: 'No smokers', note: 'Only people who never smoke' },
+  { id: 'must-want-kids', label: 'Must want kids', note: 'Rules out anyone who has said no' },
+  { id: 'must-not-want-kids', label: "Must not want kids", note: 'Rules out anyone set on having them' },
+  { id: 'no-one-with-kids', label: 'No one who has kids', note: 'Rules out existing parents' },
+  { id: 'nearby-only', label: 'Nearby only', note: 'Hard cut at the distance below' },
+]
 const INTENTS = Object.keys(INTENT_LABELS) as Intent[]
 const MAX_INTERESTS = 10
 
@@ -28,6 +38,33 @@ export function ProfileEditor({ initial, onSave, onCancel, onDelete }: Props) {
   const isSelf = p.managed?.kind === 'self'
   const set = <K extends keyof Person>(key: K, value: Person[K]) =>
     setP((prev) => ({ ...prev, [key]: value }))
+  const setPref = <K extends keyof Preferences>(key: K, value: Preferences[K]) =>
+    setP((prev) => ({ ...prev, prefs: { ...prev.prefs, [key]: value } }))
+
+  function toggleHair(hair: HairColor) {
+    setP((prev) => ({
+      ...prev,
+      prefs: {
+        ...prev.prefs,
+        hair: prev.prefs.hair.includes(hair)
+          ? prev.prefs.hair.filter((h) => h !== hair)
+          : [...prev.prefs.hair, hair],
+      },
+    }))
+  }
+
+  function toggleDealbreaker(rule: Dealbreaker) {
+    setP((prev) => {
+      const has = prev.prefs.dealbreakers.includes(rule)
+      let next = has
+        ? prev.prefs.dealbreakers.filter((d) => d !== rule)
+        : [...prev.prefs.dealbreakers, rule]
+      // Wanting kids and not wanting kids can't both be requirements.
+      if (!has && rule === 'must-want-kids') next = next.filter((d) => d !== 'must-not-want-kids')
+      if (!has && rule === 'must-not-want-kids') next = next.filter((d) => d !== 'must-want-kids')
+      return { ...prev, prefs: { ...prev.prefs, dealbreakers: next } }
+    })
+  }
   const setLife = <K extends keyof Person['lifestyle']>(key: K, value: Person['lifestyle'][K]) =>
     setP((prev) => ({ ...prev, lifestyle: { ...prev.lifestyle, [key]: value } }))
 
@@ -82,8 +119,13 @@ export function ProfileEditor({ initial, onSave, onCancel, onDelete }: Props) {
       hometown: p.hometown.trim() || p.city.trim(),
       region: findCity(p.city)?.region ?? p.region,
       prompts: p.prompts.filter((x) => x.answer.trim()),
-      ageMin: Math.min(p.ageMin, p.ageMax),
-      ageMax: Math.max(p.ageMin, p.ageMax),
+      prefs: {
+        ...p.prefs,
+        ageMin: Math.min(p.prefs.ageMin, p.prefs.ageMax),
+        ageMax: Math.max(p.prefs.ageMin, p.prefs.ageMax),
+        heightMin: Math.min(p.prefs.heightMin, p.prefs.heightMax),
+        heightMax: Math.max(p.prefs.heightMin, p.prefs.heightMax),
+      },
     }
     onSave(cleaned)
   }
@@ -289,6 +331,21 @@ export function ProfileEditor({ initial, onSave, onCancel, onDelete }: Props) {
           </div>
 
           <div className="field">
+            <label>Hair</label>
+            <div className="chip-row">
+              {HAIRS.map((h) => (
+                <button
+                  key={h}
+                  className={`toggle toggle-sm ${p.hair === h ? 'on' : ''}`}
+                  onClick={() => set('hair', h)}
+                >
+                  {HAIR_LABELS[h]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="field">
             <label htmlFor="height">Height — {p.heightCm} cm</label>
             <input
               id="height"
@@ -458,41 +515,124 @@ export function ProfileEditor({ initial, onSave, onCancel, onDelete }: Props) {
               ))}
             </div>
           </div>
+
+          <div className="section-label">Their type</div>
+          <p className="tiny muted" style={{ marginTop: -4 }}>
+            The things you'd actually list if a friend asked what they're looking for. These feed the
+            "Their type" slice of every compatibility score.
+          </p>
+
           <div className="grid-2">
             <div className="field">
-              <label>Youngest — {p.ageMin}</label>
+              <label>Youngest — {p.prefs.ageMin}</label>
               <input
                 type="range"
                 className="range"
                 min={18}
                 max={80}
-                value={p.ageMin}
-                onChange={(e) => set('ageMin', Number(e.target.value))}
+                value={p.prefs.ageMin}
+                onChange={(e) => setPref('ageMin', Number(e.target.value))}
               />
             </div>
             <div className="field">
-              <label>Oldest — {p.ageMax}</label>
+              <label>Oldest — {p.prefs.ageMax}</label>
               <input
                 type="range"
                 className="range"
                 min={18}
                 max={80}
-                value={p.ageMax}
-                onChange={(e) => set('ageMax', Number(e.target.value))}
+                value={p.prefs.ageMax}
+                onChange={(e) => setPref('ageMax', Number(e.target.value))}
               />
             </div>
           </div>
+
+          <div className="grid-2">
+            <div className="field">
+              <label>Shortest — {p.prefs.heightMin} cm</label>
+              <input
+                type="range"
+                className="range"
+                min={140}
+                max={210}
+                value={p.prefs.heightMin}
+                onChange={(e) => setPref('heightMin', Number(e.target.value))}
+              />
+            </div>
+            <div className="field">
+              <label>Tallest — {p.prefs.heightMax} cm</label>
+              <input
+                type="range"
+                className="range"
+                min={140}
+                max={210}
+                value={p.prefs.heightMax}
+                onChange={(e) => setPref('heightMax', Number(e.target.value))}
+              />
+            </div>
+          </div>
+          <div className="hint" style={{ marginTop: -6 }}>
+            Leave it wide open (140-210) and height stops counting at all.
+          </div>
+
           <div className="field">
-            <label>Willing to travel — {p.maxDistanceKm} km</label>
+            <label>Hair they go for</label>
+            <div className="chip-row">
+              {HAIRS.map((h) => (
+                <button
+                  key={h}
+                  className={`toggle toggle-sm ${p.prefs.hair.includes(h) ? 'on' : ''}`}
+                  onClick={() => toggleHair(h)}
+                >
+                  {HAIR_LABELS[h]}
+                </button>
+              ))}
+            </div>
+            <div className="hint">
+              {p.prefs.hair.length
+                ? 'A preference, not a rule — off-type people still show up, just lower.'
+                : 'Nothing picked means no preference.'}
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Willing to travel — {p.prefs.maxDistanceKm} km</label>
             <input
               type="range"
               className="range"
               min={5}
               max={300}
               step={5}
-              value={p.maxDistanceKm}
-              onChange={(e) => set('maxDistanceKm', Number(e.target.value))}
+              value={p.prefs.maxDistanceKm}
+              onChange={(e) => setPref('maxDistanceKm', Number(e.target.value))}
             />
+          </div>
+
+          <div className="section-label">Dealbreakers</div>
+          <p className="tiny muted" style={{ marginTop: -4 }}>
+            These are hard rules. Anyone who fails one never appears in {p.name || 'their'} deck at
+            all, so use them sparingly.
+          </p>
+          <div className="stack" style={{ marginTop: 10 }}>
+            {DEALBREAKERS.map((d) => {
+              const on = p.prefs.dealbreakers.includes(d.id)
+              return (
+                <button
+                  key={d.id}
+                  className="row"
+                  onClick={() => toggleDealbreaker(d.id)}
+                  style={{ borderColor: on ? 'rgba(255,77,121,0.45)' : undefined }}
+                >
+                  <div style={{ fontSize: 19 }}>{on ? '🚫' : '⬜️'}</div>
+                  <div className="row-main">
+                    <div className="row-title">{d.label}</div>
+                    <div className="row-sub" style={{ whiteSpace: 'normal' }}>
+                      {d.note}
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
           </div>
 
           {onDelete && (

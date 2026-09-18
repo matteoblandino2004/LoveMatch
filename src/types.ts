@@ -1,4 +1,4 @@
-/** Core domain types for LoveMatch. */
+/** Core domain types for Wingman. */
 
 export type Gender = 'woman' | 'man' | 'nonbinary'
 
@@ -10,6 +10,31 @@ export type Intent =
   | 'figuring-it-out'
 
 export type Frequency = 'never' | 'sometimes' | 'often'
+export type HairColor = 'black' | 'brown' | 'blonde' | 'red' | 'grey' | 'other'
+
+/**
+ * A hard rule that keeps someone out of the deck entirely, rather than just
+ * costing them points.
+ */
+export type Dealbreaker =
+  | 'no-smokers'
+  | 'must-want-kids'
+  | 'must-not-want-kids'
+  | 'no-one-with-kids'
+  | 'nearby-only'
+
+/** What this person is looking for — the filters a matchmaker actually argues about. */
+export interface Preferences {
+  ageMin: number
+  ageMax: number
+  /** Kilometres they'd realistically travel. */
+  maxDistanceKm: number
+  heightMin: number
+  heightMax: number
+  /** Preferred hair colours. Empty means no preference at all. */
+  hair: HairColor[]
+  dealbreakers: Dealbreaker[]
+}
 export type KidsStance = 'want' | 'open' | 'dont-want' | 'have-want-more' | 'have-done'
 export type PetStance = 'dog' | 'cat' | 'both' | 'none' | 'allergic'
 export type Politics = 'left' | 'moderate' | 'right' | 'apolitical'
@@ -49,6 +74,7 @@ export interface Person {
   job: string
   education: string
   heightCm: number
+  hair: HairColor
   bio: string
   /** Photo ids — the bytes live in IndexedDB, see lib/photos.ts. Max 6. */
   photos: string[]
@@ -58,9 +84,8 @@ export interface Person {
   prompts: Prompt[]
   /** Accent colour seed used to render the generated avatar. */
   accent: number
-  ageMin: number
-  ageMax: number
-  maxDistanceKm: number
+  /** What they're looking for. */
+  prefs: Preferences
   createdAt: number
   /** Something this person is also hoping to find a date for. */
   seeking?: { kind: OccasionKind; note: string }

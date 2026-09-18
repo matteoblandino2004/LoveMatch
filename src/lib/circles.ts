@@ -1,6 +1,6 @@
 import type { AppState, Person, Swipe } from '../types'
 import { MY_CIRCLE } from '../types'
-import { compatibility, mutuallyEligible } from './compatibility'
+import { compatibility, eligibleFor } from './compatibility'
 
 export interface Ranked {
   person: Person
@@ -29,7 +29,7 @@ export function rankAgainst(
     .map((person) => ({
       person,
       score: compatibility(anchor, person).score,
-      eligible: mutuallyEligible(anchor, person),
+      eligible: eligibleFor(anchor, person) && eligibleFor(person, anchor),
       seen: isSeen(person),
     }))
     .sort((a, b) => {

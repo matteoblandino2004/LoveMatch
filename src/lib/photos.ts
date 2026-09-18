@@ -7,7 +7,7 @@
  * blocked should still be able to swipe.
  */
 
-const DB_NAME = 'lovematch-photos'
+const DB_NAME = 'wingman-photos'
 const STORE = 'photos'
 const DB_VERSION = 1
 

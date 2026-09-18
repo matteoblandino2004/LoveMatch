@@ -1,5 +1,5 @@
 import type { AppState, Person } from '../types'
-import { compatibility, mutuallyEligible } from './compatibility'
+import { compatibility, eligibleFor } from './compatibility'
 import { pairRandom } from './id'
 
 /**
@@ -40,7 +40,7 @@ export function buildDeck(state: AppState, profile: Person): DeckEntry[] {
     if (seen.has(id) || id === profile.id) continue
     const person = state.people[id]
     if (!person) continue
-    if (!mutuallyEligible(profile, person)) continue
+    if (!eligibleFor(profile, person)) continue
     entries.push({ person, score: compatibility(profile, person).score })
   }
   return entries.sort((a, b) => {
@@ -54,6 +54,6 @@ export function buildDeck(state: AppState, profile: Person): DeckEntry[] {
 export function eligibleCount(state: AppState, profile: Person): number {
   return state.communityIds.filter((id) => {
     const person = state.people[id]
-    return person && mutuallyEligible(profile, person)
+    return person !== undefined && eligibleFor(profile, person)
   }).length
 }

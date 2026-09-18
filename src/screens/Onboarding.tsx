@@ -20,12 +20,12 @@ export function Onboarding({ onCreateProfile }: { onCreateProfile: (kind: 'self'
     <div className="screen" style={{ paddingTop: 26 }}>
       <div style={{ fontSize: 46, lineHeight: 1 }}>💘</div>
       <h1 className="screen-title" style={{ marginTop: 14, fontSize: 32 }}>
-        Everyone knows someone
+        Be the reason
         <br />
-        who deserves better.
+        they finally meet.
       </h1>
       <p className="screen-sub" style={{ fontSize: 15, marginTop: 10 }}>
-        LoveMatch is a dating app you can use <i>for other people</i>. Build a profile for your sister,
+        Wingman is a dating app you use <i>for other people</i>. Build a profile for your sister,
         your best friend, your cousin who swears he's fine — then swipe on their behalf. When it's
         mutual, everyone gets the notification.
       </p>

@@ -1,8 +1,9 @@
 import type { Intent, KidsStance, Person, Politics } from '../types'
+import { HAIR_LABELS } from './people'
 import { distanceBetween } from './geo'
 
 export interface Facet {
-  key: 'interests' | 'age' | 'location' | 'intent' | 'lifestyle' | 'values'
+  key: 'interests' | 'age' | 'location' | 'intent' | 'lifestyle' | 'values' | 'type'
   label: string
   /** 0..1 */
   score: number
@@ -24,12 +25,13 @@ export interface Compatibility {
 }
 
 const WEIGHTS = {
-  interests: 24,
-  intent: 18,
-  lifestyle: 16,
-  age: 14,
-  location: 14,
-  values: 14,
+  interests: 22,
+  intent: 16,
+  lifestyle: 14,
+  type: 14,
+  age: 12,
+  location: 12,
+  values: 10,
 } as const
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n))
@@ -53,8 +55,8 @@ function scoreInterests(a: Person, b: Person): Facet {
 function scoreAge(a: Person, b: Person): Facet {
   const gap = Math.abs(a.age - b.age)
   let score = clamp01(1 - gap / 16)
-  const aOk = b.age >= a.ageMin && b.age <= a.ageMax
-  const bOk = a.age >= b.ageMin && a.age <= b.ageMax
+  const aOk = b.age >= a.prefs.ageMin && b.age <= a.prefs.ageMax
+  const bOk = a.age >= b.prefs.ageMin && a.age <= b.prefs.ageMax
   let detail = gap === 0 ? 'Same age' : `${gap} year${gap === 1 ? '' : 's'} apart`
   if (!aOk || !bOk) {
     score = Math.min(score, 0.25)
@@ -72,7 +74,7 @@ function scoreLocation(a: Person, b: Person): Facet {
     score = 1
     detail = `Both in ${a.city}`
   } else if (km !== null) {
-    const limit = Math.min(a.maxDistanceKm, b.maxDistanceKm)
+    const limit = Math.min(a.prefs.maxDistanceKm, b.prefs.maxDistanceKm)
     score = clamp01(1 - km / Math.max(limit * 2.5, 60))
     detail = `${km} km apart`
     if (km > limit) {
@@ -207,6 +209,92 @@ function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
+/**
+ * How close each one is to the other's stated type — height, hair, age band.
+ * Scored both ways and averaged, because wanting someone who doesn't want you
+ * back isn't a match.
+ */
+function scoreType(a: Person, b: Person): Facet {
+  const forA = matchesType(a, b)
+  const forB = matchesType(b, a)
+  const score = (forA.score + forB.score) / 2
+
+  const notes: string[] = []
+  if (forA.hair === 'hit') notes.push(`${b.name} has the hair ${a.name} asked for`)
+  else if (forA.hair === 'miss') notes.push(`Not the hair colour ${a.name} usually picks`)
+  if (forA.height === 'miss') notes.push(`Outside ${a.name}'s height range`)
+  else if (forB.height === 'miss') notes.push(`Outside ${b.name}'s height range`)
+  if (!notes.length) {
+    notes.push(
+      forA.anyPreference || forB.anyPreference
+        ? 'Ticks the boxes on both sides'
+        : 'Neither of them is fussy about looks',
+    )
+  }
+  return { key: 'type', label: 'Their type', score, weight: WEIGHTS.type, detail: notes.join(' · ') }
+}
+
+type Hit = 'hit' | 'miss' | 'none'
+
+/** Does `other` fit what `viewer` said they're looking for? */
+function matchesType(viewer: Person, other: Person) {
+  const parts: number[] = []
+
+  const wantsHair = viewer.prefs.hair.length > 0
+  const hair: Hit = !wantsHair ? 'none' : viewer.prefs.hair.includes(other.hair) ? 'hit' : 'miss'
+  if (wantsHair) parts.push(hair === 'hit' ? 1 : 0.35)
+
+  const { heightMin, heightMax } = viewer.prefs
+  const inHeight = other.heightCm >= heightMin && other.heightCm <= heightMax
+  // A preference is only meaningful if it actually rules anything out.
+  const heightMatters = heightMin > 150 || heightMax < 205
+  const height: Hit = !heightMatters ? 'none' : inHeight ? 'hit' : 'miss'
+  if (heightMatters) {
+    const over = inHeight ? 0 : Math.min(Math.abs(other.heightCm - heightMin), Math.abs(other.heightCm - heightMax))
+    parts.push(inHeight ? 1 : clamp01(1 - over / 15) * 0.6)
+  }
+
+  const inAge = other.age >= viewer.prefs.ageMin && other.age <= viewer.prefs.ageMax
+  parts.push(inAge ? 1 : 0.4)
+
+  return {
+    score: parts.reduce((sum, n) => sum + n, 0) / parts.length,
+    hair,
+    height,
+    anyPreference: wantsHair || heightMatters,
+  }
+}
+
+/** Hard rules — these keep someone out of the deck rather than costing points. */
+export function failedDealbreakers(viewer: Person, other: Person): string[] {
+  const failed: string[] = []
+  for (const rule of viewer.prefs.dealbreakers) {
+    if (rule === 'no-smokers' && other.lifestyle.smoking !== 'never') {
+      failed.push('They smoke')
+    }
+    if (rule === 'must-want-kids' && !['want', 'open', 'have-want-more'].includes(other.lifestyle.kids)) {
+      failed.push("They don't want kids")
+    }
+    if (rule === 'must-not-want-kids' && ['want', 'have-want-more'].includes(other.lifestyle.kids)) {
+      failed.push('They want kids')
+    }
+    if (rule === 'no-one-with-kids' && ['have-want-more', 'have-done'].includes(other.lifestyle.kids)) {
+      failed.push('They already have kids')
+    }
+    if (rule === 'nearby-only') {
+      const km = distanceBetween(viewer.city, other.city)
+      if (km !== null && km > viewer.prefs.maxDistanceKm) failed.push(`${km} km away`)
+      if (km === null && viewer.region !== other.region) failed.push('Not nearby')
+    }
+  }
+  return failed
+}
+
+/** Open to each other's gender, and past each other's hard rules. */
+export function eligibleFor(viewer: Person, other: Person): boolean {
+  return mutuallyEligible(viewer, other) && failedDealbreakers(viewer, other).length === 0
+}
+
 function buildFlags(a: Person, b: Person, facets: Facet[]): string[] {
   const flags: string[] = []
   const kids = KIDS_FIT[a.lifestyle.kids][b.lifestyle.kids]
@@ -221,6 +309,9 @@ function buildFlags(a: Person, b: Person, facets: Facet[]): string[] {
   }
   if (!a.interestedIn.includes(b.gender) || !b.interestedIn.includes(a.gender)) {
     flags.push('Outside their stated preferences')
+  }
+  for (const reason of failedDealbreakers(a, b)) {
+    flags.push(`${a.name} ruled this out: ${reason.toLowerCase()}`)
   }
   return flags
 }
@@ -250,6 +341,7 @@ export function compatibility(a: Person, b: Person): Compatibility {
     scoreAge(a, b),
     scoreLocation(a, b),
     scoreValues(a, b),
+    scoreType(a, b),
   ]
   const total = facets.reduce((sum, f) => sum + f.score * f.weight, 0)
   const shared = sharedInterests(a, b)
@@ -260,6 +352,19 @@ export function compatibility(a: Person, b: Person): Compatibility {
     flags: buildFlags(a, b, facets),
     icebreakers: buildIcebreakers(a, b, shared),
   }
+}
+
+/** "Brown or black hair, 175-195 cm, 28-38" — one line of what they're after. */
+export function describePreferences(person: Person): string {
+  const bits: string[] = [`${person.prefs.ageMin}-${person.prefs.ageMax}`]
+  if (person.prefs.heightMin > 150 || person.prefs.heightMax < 205) {
+    bits.push(`${person.prefs.heightMin}-${person.prefs.heightMax} cm`)
+  }
+  if (person.prefs.hair.length) {
+    bits.push(`${person.prefs.hair.map((h) => HAIR_LABELS[h].toLowerCase()).join(' or ')} hair`)
+  }
+  bits.push(`within ${person.prefs.maxDistanceKm} km`)
+  return bits.join(' · ')
 }
 
 export function scoreLabel(score: number): string {
