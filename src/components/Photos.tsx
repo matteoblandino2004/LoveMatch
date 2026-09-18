@@ -1,7 +1,9 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Person } from '../types'
 import { usePhoto, usePhotoList } from './usePhotos'
-import { MAX_PHOTOS, addPhoto, deletePhotos } from '../lib/photos'
+import { MAX_PHOTOS, addPhoto, deletePhotos, storageWorks } from '../lib/photos'
+import { pickNativePhotos, takeNativePhoto } from '../lib/nativePhotos'
+import { isNative } from '../lib/native'
 
 /** The photo filling a swipe card, with Hinge-style progress pips. */
 export function CardPhoto({ person, index }: { person: Person; index: number }) {
@@ -66,27 +68,55 @@ export function PhotoEditor({ person, onChange }: EditorProps) {
   const input = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(0)
   const [error, setError] = useState('')
+  const [blocked, setBlocked] = useState(false)
 
   const slots = MAX_PHOTOS - person.photos.length
+  const native = isNative()
 
-  async function onPick(files: FileList | null) {
-    if (!files?.length) return
+  // Say up front when photos have nowhere to be saved, rather than after
+  // someone has picked six of them.
+  useEffect(() => {
+    let live = true
+    storageWorks().then((works) => {
+      if (live) setBlocked(!works)
+    })
+    return () => {
+      live = false
+    }
+  }, [])
+
+  async function save(files: File[]) {
+    if (!files.length) return
     setError('')
-    const picked = Array.from(files).slice(0, slots)
+    const picked = files.slice(0, slots)
     setBusy(picked.length)
     const added: string[] = []
+    const problems: string[] = []
     for (const file of picked) {
-      const id = await addPhoto(file)
-      if (id) added.push(id)
+      const result = await addPhoto(file)
+      if (result.ok) added.push(result.id)
+      else if (!problems.includes(result.reason)) problems.push(result.reason)
       setBusy((n) => n - 1)
     }
-    if (!added.length) {
-      setError("Couldn't save those — this browser may be blocking storage.")
-    } else if (added.length < picked.length) {
-      setError(`Saved ${added.length} of ${picked.length}.`)
-    }
     if (added.length) onChange([...person.photos, ...added])
+    if (problems.length) {
+      setError(
+        added.length
+          ? `Saved ${added.length} of ${picked.length}. ${problems[0]}`
+          : problems[0],
+      )
+    }
     if (input.current) input.current.value = ''
+  }
+
+  async function pickNatively() {
+    const files = await pickNativePhotos(slots)
+    if (files) await save(files)
+  }
+
+  async function shootNatively() {
+    const file = await takeNativePhoto()
+    if (file) await save([file])
   }
 
   function remove(id: string) {
@@ -138,26 +168,44 @@ export function PhotoEditor({ person, onChange }: EditorProps) {
           </div>
         ))}
 
-        {slots - busy > 0 && (
-          <button className="photo-slot add" onClick={() => input.current?.click()}>
-            <span style={{ fontSize: 24 }}>＋</span>
-            <span className="tiny muted">Add photo</span>
+        {slots - busy > 0 &&
+          (native ? (
+            <button className="photo-slot add" onClick={() => void pickNatively()}>
+              <span style={{ fontSize: 24 }}>＋</span>
+              <span className="tiny muted">Photo library</span>
+            </button>
+          ) : (
+            <div className="photo-slot add">
+              <span style={{ fontSize: 24 }}>＋</span>
+              <span className="tiny muted">Add photo</span>
+              {/*
+                The input is the tap target itself. A hidden input clicked from
+                JavaScript is the classic way to lose the picker on iOS.
+              */}
+              <input
+                ref={input}
+                type="file"
+                accept="image/*"
+                multiple
+                className="photo-input"
+                aria-label={`Add a photo of ${person.name || 'them'}`}
+                onChange={(e) => void save(Array.from(e.target.files ?? []))}
+              />
+            </div>
+          ))}
+
+        {native && slots - busy > 0 && (
+          <button className="photo-slot add" onClick={() => void shootNatively()}>
+            <span style={{ fontSize: 24 }}>📷</span>
+            <span className="tiny muted">Take one</span>
           </button>
         )}
       </div>
 
-      <input
-        ref={input}
-        type="file"
-        accept="image/*"
-        multiple
-        hidden
-        onChange={(e) => void onPick(e.target.files)}
-      />
-
-      {error && (
+      {(error || blocked) && (
         <div className="tiny" style={{ color: '#ff9aa8', marginTop: 8 }}>
-          {error}
+          {error ||
+            "This browser is blocking storage, so photos can't be saved here. Open Wingman in Safari or Chrome directly, or use the installed app."}
         </div>
       )}
       <div className="hint">

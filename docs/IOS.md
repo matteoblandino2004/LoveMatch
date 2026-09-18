@@ -56,12 +56,14 @@ loop while developing UI, just use `npm run dev` in the browser — the app is t
 | Encryption declaration | `Info.plist` | `ITSAppUsesNonExemptEncryption: false` |
 | App icon | `ios/App/App/Assets.xcassets/AppIcon.appiconset` | 1024×1024, generated |
 | Launch screen | `Assets.xcassets/Splash.imageset` | 2732×2732, generated |
+| Photo picker | `src/lib/nativePhotos.ts` | Native Photos sheet and camera via `@capacitor/camera` |
 | Status bar | `src/lib/native.ts` | Light glyphs on `#100810` |
 | Haptics | `src/lib/native.ts` | Medium tap on a swipe, success buzz on a match |
 
-The permission strings matter: the photo picker is a plain `<input type="file">`, and iOS still
-requires the usage descriptions before WKWebView will open the library or the camera. Apple rejects
-builds that ask for access without them.
+The permission strings matter. In the native app, **Add photo** opens the real iOS photo sheet
+through `@capacitor/camera` (`Camera.pickImages`), and **Take one** opens the camera — both need
+those usage descriptions or iOS kills the app the moment you tap. On the web the same button is a
+plain `<input type="file">`, which falls back to whatever the browser offers.
 
 ## TestFlight
 
@@ -116,4 +118,5 @@ Worth planning for before you build it, not after.
 - **White screen on launch** — `dist/` wasn't copied. Run `npm run ios:sync`.
 - **Changes don't show up** — same thing: the native app serves the built bundle, not the dev server.
 - **Photo picker does nothing on device** — check the two usage strings are still in `Info.plist`;
-  a regenerated project overwrites them.
+  a regenerated project overwrites them. After pulling changes that add a plugin, run
+  `npm run ios:sync` so Xcode picks it up, then clean (⇧⌘K) and rebuild.

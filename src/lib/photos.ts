@@ -58,42 +58,109 @@ function photoId(): string {
   return `ph_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 9)}`
 }
 
-/** Downscale and re-encode a picked file so six of them don't cost 30 MB. */
-export async function processImage(file: File): Promise<Blob> {
-  // `from-image` applies the EXIF rotation, so portrait photos aren't sideways.
-  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
-  const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height))
-  const width = Math.round(bitmap.width * scale)
-  const height = Math.round(bitmap.height * scale)
+type Decoded = { source: CanvasImageSource; width: number; height: number; close: () => void }
 
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  const ctx = canvas.getContext('2d')
-  if (!ctx) {
-    bitmap.close()
-    return file
+/**
+ * Get a drawable image out of a picked file.
+ *
+ * Three ways, because one browser or another refuses each of them: Safari only
+ * learned `imageOrientation` recently, older WebKit has no createImageBitmap at
+ * all, and an <img> element handles formats (HEIC on iOS) that createImageBitmap
+ * will not touch.
+ */
+async function decodeImage(file: File): Promise<Decoded> {
+  if (typeof createImageBitmap === 'function') {
+    for (const options of [{ imageOrientation: 'from-image' as const }, undefined]) {
+      try {
+        const bitmap = await createImageBitmap(file, options)
+        return {
+          source: bitmap,
+          width: bitmap.width,
+          height: bitmap.height,
+          close: () => bitmap.close(),
+        }
+      } catch {
+        // Try the next way in.
+      }
+    }
   }
-  ctx.drawImage(bitmap, 0, 0, width, height)
-  bitmap.close()
 
-  const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY),
-  )
-  return blob ?? file
+  const url = URL.createObjectURL(file)
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image()
+      el.onload = () => resolve(el)
+      el.onerror = () => reject(new Error('decode failed'))
+      el.src = url
+    })
+    return {
+      source: img,
+      width: img.naturalWidth || img.width,
+      height: img.naturalHeight || img.height,
+      close: () => URL.revokeObjectURL(url),
+    }
+  } catch (error) {
+    URL.revokeObjectURL(url)
+    throw error
+  }
 }
 
-/** Process and store one picked file. Returns the id to put on the profile. */
-export async function addPhoto(file: File): Promise<string | null> {
+/** Downscale and re-encode a picked file so six of them don't cost 30 MB. */
+export async function processImage(file: File): Promise<Blob> {
+  const decoded = await decodeImage(file)
   try {
-    const blob = await processImage(file)
-    const id = photoId()
-    const stored = await tx('readwrite', (store) => store.put(blob, id) as IDBRequest<IDBValidKey>)
-    if (stored === null) return null
-    return id
-  } catch {
-    return null
+    const scale = Math.min(1, MAX_EDGE / Math.max(decoded.width, decoded.height))
+    const width = Math.max(1, Math.round(decoded.width * scale))
+    const height = Math.max(1, Math.round(decoded.height * scale))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return file
+    ctx.drawImage(decoded.source, 0, 0, width, height)
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY),
+    )
+    return blob ?? file
+  } finally {
+    decoded.close()
   }
+}
+
+export type AddPhotoResult = { ok: true; id: string } | { ok: false; reason: string }
+
+/** True when photos can be stored at all in this browser. */
+export async function storageWorks(): Promise<boolean> {
+  return (await openDb()) !== null
+}
+
+/** Process and store one picked file. */
+export async function addPhoto(file: File): Promise<AddPhotoResult> {
+  if (file.type && !file.type.startsWith('image/') && !/\.(jpe?g|png|gif|webp|heic|heif)$/i.test(file.name)) {
+    return { ok: false, reason: `${file.name || 'That file'} is not an image.` }
+  }
+
+  let blob: Blob
+  try {
+    blob = await processImage(file)
+  } catch {
+    // Couldn't decode it. A small original is still worth keeping — Safari
+    // displays HEIC fine even when it refuses to re-encode it.
+    if (file.size > 0 && file.size < 4_000_000) blob = file
+    else return { ok: false, reason: "This browser couldn't read that photo. A screenshot usually works." }
+  }
+
+  const id = photoId()
+  const stored = await tx('readwrite', (store) => store.put(blob, id) as IDBRequest<IDBValidKey>)
+  if (stored === null) {
+    return {
+      ok: false,
+      reason: 'Storage is blocked here, so photos have nowhere to go. Private browsing or blocked site data will do this.',
+    }
+  }
+  return { ok: true, id }
 }
 
 const urlCache = new Map<string, Promise<string | null>>()

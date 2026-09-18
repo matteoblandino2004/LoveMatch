@@ -594,7 +594,19 @@ input, select, textarea { font: inherit; }
   color: var(--ink-dim);
 }
 .photo-slot.filled { border-style: solid; }
-.photo-slot.add { cursor: pointer; }
+.photo-slot.add { cursor: pointer; position: relative; }
+
+/* A real, tappable file input covering its slot. iOS opens the picker for a
+   genuine tap on the input; a scripted click on a hidden one often does nothing. */
+.photo-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 0;
+}
 .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
 .photo-tag {
   position: absolute;

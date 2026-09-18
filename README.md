@@ -36,7 +36,9 @@ your own. Each carries the usual dating-profile content (bio, photos-as-gradient
 lifestyle, what they're looking for) plus two things a normal dating app has no room for: *how you
 know them* and *your pitch as their matchmaker*.
 
-**Six photos per person.** Add up to six real photos to any profile. They're downscaled to 1440px
+**Six photos per person.** Add up to six real photos to any profile. In the iOS app that's the
+native Photos sheet or the camera; in a browser it's a file input you tap directly — never a hidden
+input clicked from JavaScript, which is the usual reason a picker does nothing on an iPhone. They're downscaled to 1440px
 and re-encoded before saving, so six cost about a megabyte rather than thirty. The first is the main
 photo; tap ◀ ▶ to reorder. Cards show them as a carousel — tap the upper half to flip through, tap
 down near the name for the full profile. Profiles with no photos still get their generated gradient.
