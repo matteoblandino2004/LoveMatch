@@ -24,7 +24,15 @@ npm test         # 102 unit tests over the scoring engines, circles, occasions a
 npm run build    # typecheck + production bundle into dist/
 npm run preview  # serve the built bundle
 npm run ios      # build, sync and open the iOS app in Xcode (macOS)
+npm run build:single   # one self-contained wingman.html you can just double-click
 ```
+
+`wingman.html` in the repo root is that build, checked in so you can download and open it without
+a toolchain: one file, no server, no network. It runs from `file://` — the script is inlined as a
+classic script at the end of the body, because a module script won't load off disk and a classic one
+in the head would run before there's anything to mount on. Safari is stricter than Chrome about
+storage for local files, so if profiles don't survive a reload there, use the browser you'd normally
+browse in, or the hosted build.
 
 No backend, no API keys, no sign-up. Profiles and swipes live in `localStorage`; photos live in
 IndexedDB. Nothing leaves the device — the app makes no network requests at all.
