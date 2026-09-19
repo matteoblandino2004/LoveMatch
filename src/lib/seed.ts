@@ -1,0 +1,593 @@
+import type { Occasion, Person, Tie } from '../types'
+import { makePerson } from './people'
+
+/**
+ * The community pool. Everyone here is a stranger your people can be shown.
+ * Ids are stable so a saved swipe history keeps meaning across reloads.
+ */
+export const COMMUNITY: Person[] = [
+  makePerson({
+    id: 'c_daniel', name: 'Daniel', age: 31, gender: 'man', interestedIn: ['woman'],
+    city: 'Brooklyn, NY', hometown: 'Naples, IT', job: 'Pastry chef at a bakery in Carroll Gardens',
+    education: 'CIA Hyde Park', heightCm: 183, hair: 'black', accent: 18,
+    bio: "I feed people for a living and it's also how I say most things. Sunday dinner is non-negotiable.",
+    interests: ['Cooking', 'Baking', 'Sunday dinners', 'Live music', 'Big family', 'Dogs', 'Farmers markets'],
+    intent: 'long-term', prefs: { ageMin: 26, ageMax: 36, maxDistanceKm: 40 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'sometimes', kids: 'want', pets: 'dog', faith: 3, politics: 'moderate', socialEnergy: 3 },
+    prompts: [
+      { question: 'The way to win me over is', answer: 'Show up hungry and stay for the second plate.' },
+      { question: 'My love language is', answer: 'Feeding you until you are angry about how full you are.' },
+    ],
+    circle: {
+      id: 'mm_rosa', matchmaker: 'Rosa', relationship: 'Her cousin',
+      pitch: 'He cooks for everyone and feeds himself last. Somebody please notice him.',
+    },
+  }),
+  makePerson({
+    id: 'c_priya', name: 'Priya', age: 29, gender: 'woman', interestedIn: ['man', 'woman'],
+    city: 'Jersey City, NJ', hometown: 'Mumbai, IN', job: 'Pediatric resident', education: 'Rutgers',
+    heightCm: 165, hair: 'black', accent: 300,
+    bio: 'Twelve-hour shifts then straight to the climbing gym. I sleep eventually.',
+    interests: ['Climbing', 'Medicine', 'Coffee', 'Travel', 'Podcasts', 'Cooking', 'Dogs'],
+    intent: 'long-term', prefs: { ageMin: 27, ageMax: 38, maxDistanceKm: 50 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'want', pets: 'dog', faith: 2, politics: 'left', socialEnergy: 3 },
+    prompts: [{ question: 'I geek out on', answer: 'Explaining ear infections to four-year-olds using puppets.' }],
+    circle: {
+      id: 'mm_dev', matchmaker: 'Dev', relationship: 'His sister',
+      pitch: 'She saves children\'s lives at work and still texts me back. Be worthy.',
+    },
+    seeking: { kind: 'wedding', note: 'a +1 for her brother\'s wedding in August' }
+  }),
+  makePerson({
+    id: 'c_marcus', name: 'Marcus', age: 34, gender: 'man', interestedIn: ['woman'],
+    city: 'Manhattan, NY', hometown: 'Atlanta, GA', job: 'High school history teacher & JV coach',
+    education: 'Morehouse', heightCm: 188, hair: 'black', accent: 205,
+    bio: "I will absolutely explain the Marshall Plan at a party. I'm working on it.",
+    interests: ['Basketball', 'Teaching', 'Reading', 'Vinyl', 'Trivia', 'Big family', 'Grilling'],
+    intent: 'long-term', prefs: { ageMin: 27, ageMax: 38, maxDistanceKm: 45 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'want', pets: 'none', faith: 4, politics: 'moderate', socialEnergy: 3 },
+    prompts: [{ question: 'The one thing my family always says about me', answer: 'That I have never once been on time, and I have never once apologised for it.' }],
+    circle: {
+      id: 'mm_tanya', matchmaker: 'Tanya', relationship: 'Her brother',
+      pitch: 'He has been the most reliable man in my life for 34 years. Your move.',
+    },
+    seeking: { kind: 'double-date', note: 'a double date — his brother and sister-in-law keep asking' }
+  }),
+  makePerson({
+    id: 'c_sofia', name: 'Sofia', age: 27, gender: 'woman', interestedIn: ['man'],
+    city: 'Brooklyn, NY', hometown: 'Rome, IT', job: 'Graphic designer', education: 'Parsons',
+    heightCm: 168, hair: 'brown', accent: 340,
+    bio: 'I moved here for six months in 2019. Nobody told my apartment.',
+    interests: ['Design', 'Museums', 'Photography', 'Wine', 'Travel', 'Thrifting', 'Cooking', 'Languages'],
+    intent: 'long-term-open', prefs: { ageMin: 25, ageMax: 36, maxDistanceKm: 30 },
+    lifestyle: { drinking: 'often', smoking: 'sometimes', exercise: 'sometimes', kids: 'open', pets: 'cat', faith: 2, politics: 'left', socialEnergy: 4 },
+    prompts: [{ question: 'My simple pleasures are', answer: 'An espresso standing up at the bar. Sitting down costs extra and I refuse.' }],
+    circle: {
+      id: 'mm_rosa', matchmaker: 'Rosa', relationship: 'Her best friend',
+      pitch: 'Funniest person I know in two languages. Do not let the cool exterior fool you.',
+    },
+    seeking: { kind: 'activity', note: 'someone to use her second ticket to a gallery opening' }
+  }),
+  makePerson({
+    id: 'c_jonah', name: 'Jonah', age: 33, gender: 'man', interestedIn: ['woman', 'nonbinary'],
+    city: 'Philadelphia, PA', hometown: 'Boston, MA', job: 'Structural engineer', education: 'Drexel',
+    heightCm: 180, hair: 'brown', accent: 150,
+    bio: 'Quiet by default, loud about three specific things: bridges, bagels, and the Celtics.',
+    interests: ['Cycling', 'Woodworking', 'DIY projects', 'Craft beer', 'Chess', 'Camping', 'Podcasts'],
+    intent: 'long-term', prefs: { ageMin: 27, ageMax: 37, maxDistanceKm: 80 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'want', pets: 'dog', faith: 1, politics: 'left', socialEnergy: 2 },
+    prompts: [{ question: 'A perfect Sunday looks like', answer: 'Long ride, longer shower, then building something nobody asked for.' }],
+  }),
+  makePerson({
+    id: 'c_amara', name: 'Amara', age: 30, gender: 'woman', interestedIn: ['man'],
+    city: 'Brooklyn, NY', hometown: 'Lagos, NG', job: 'Nonprofit director', education: 'Howard',
+    heightCm: 172, hair: 'black', accent: 35,
+    bio: "I run on lists. If we date, you'll end up on one and I promise it's a good thing.",
+    interests: ['Volunteering', 'Church', 'Reading', 'Dancing', 'Travel', 'Sunday dinners', 'Big family'],
+    intent: 'long-term', prefs: { ageMin: 28, ageMax: 40, maxDistanceKm: 45 },
+    lifestyle: { drinking: 'never', smoking: 'never', exercise: 'sometimes', kids: 'want', pets: 'none', faith: 5, politics: 'moderate', socialEnergy: 4 },
+    prompts: [{ question: "I'll fall for you if", answer: 'You are kind to people who cannot do anything for you.' }],
+    circle: {
+      id: 'mm_tanya', matchmaker: 'Tanya', relationship: 'Her college roommate',
+      pitch: 'She organised my entire wedding while running a nonprofit. She is a force.',
+    },
+  }),
+  makePerson({
+    id: 'c_theo', name: 'Theo', age: 28, gender: 'man', interestedIn: ['woman'],
+    city: 'Queens, NY', hometown: 'Seoul, KR', job: 'Backend engineer', education: 'Stony Brook',
+    heightCm: 175, hair: 'black', accent: 250,
+    bio: 'Three-time karaoke champion of a bar that no longer exists. The title stands.',
+    interests: ['Coding', 'Karaoke', 'Video games', 'Trying new restaurants', 'Board games', 'Cats', 'Coffee'],
+    intent: 'long-term-open', prefs: { ageMin: 24, ageMax: 33, maxDistanceKm: 35 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'sometimes', kids: 'open', pets: 'cat', faith: 1, politics: 'left', socialEnergy: 2 },
+    prompts: [{ question: "Don't hate me if I", answer: 'Pick the restaurant before I pick the outfit. Every time.' }],
+    circle: {
+      id: 'mm_dev', matchmaker: 'Dev', relationship: 'His roommate',
+      pitch: 'Kindest person in our apartment, and he does the dishes unprompted.',
+    },
+    seeking: { kind: 'double-date', note: 'a double date with his roommate and his girlfriend' }
+  }),
+  makePerson({
+    id: 'c_ruth', name: 'Ruth', age: 36, gender: 'woman', interestedIn: ['man', 'woman'],
+    city: 'Hoboken, NJ', hometown: 'Providence, RI', job: 'Veterinarian', education: 'Cornell',
+    heightCm: 163, hair: 'red', accent: 100,
+    bio: 'Two rescue dogs and a foster rotation. Divorced, honest about it, doing great.',
+    interests: ['Dogs', 'Cats', 'Hiking', 'Gardening', 'Reading', 'Farmers markets', 'Wine'],
+    intent: 'long-term', prefs: { ageMin: 30, ageMax: 46, maxDistanceKm: 60 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'sometimes', kids: 'have-done', pets: 'both', faith: 2, politics: 'left', socialEnergy: 2 },
+    prompts: [{ question: 'My most irrational fear is', answer: 'That the dogs talk about me when I leave. They do.' }],
+  }),
+  makePerson({
+    id: 'c_luca', name: 'Luca', age: 32, gender: 'man', interestedIn: ['woman'],
+    city: 'Brooklyn, NY', hometown: 'Milan, IT', job: 'Restaurant GM', education: 'Bocconi',
+    heightCm: 178, hair: 'brown', accent: 10,
+    bio: 'I work nights, so brunch with me is a genuine act of love.',
+    interests: ['Wine', 'Trying new restaurants', 'Soccer', 'Live music', 'Travel', 'Cooking', 'Languages'],
+    intent: 'long-term-open', prefs: { ageMin: 26, ageMax: 38, maxDistanceKm: 40 },
+    lifestyle: { drinking: 'often', smoking: 'sometimes', exercise: 'sometimes', kids: 'open', pets: 'none', faith: 2, politics: 'moderate', socialEnergy: 5 },
+    prompts: [{ question: 'Two truths and a lie', answer: 'I met Nadal. I make my own limoncello. I have never cried at a wedding.' }],
+    circle: {
+      id: 'mm_rosa', matchmaker: 'Rosa', relationship: 'Her brother',
+      pitch: 'He works every night so he needs someone who plans the daytime. Worth it.',
+    },
+  }),
+  makePerson({
+    id: 'c_nina', name: 'Nina', age: 26, gender: 'woman', interestedIn: ['man', 'woman', 'nonbinary'],
+    city: 'Brooklyn, NY', hometown: 'Austin, TX', job: 'Session musician', education: 'Berklee',
+    heightCm: 160, hair: 'other', accent: 280,
+    bio: 'I play bass for people you have heard of and I will not tell you who.',
+    interests: ['Live music', 'Concerts', 'Vinyl', 'Karaoke', 'Coffee', 'Thrifting', 'Beach days'],
+    intent: 'short-term', prefs: { ageMin: 23, ageMax: 34, maxDistanceKm: 30 },
+    lifestyle: { drinking: 'often', smoking: 'sometimes', exercise: 'never', kids: 'dont-want', pets: 'cat', faith: 1, politics: 'left', socialEnergy: 5 },
+    prompts: [{ question: 'My simple pleasures are', answer: 'A load-in that goes well and a diner after.' }],
+  }),
+  makePerson({
+    id: 'c_ben', name: 'Ben', age: 35, gender: 'man', interestedIn: ['woman'],
+    city: 'Chicago, IL', hometown: 'Chicago, IL', job: 'Firefighter', education: 'UIC',
+    heightCm: 185, hair: 'blonde', accent: 215,
+    bio: '24 on, 48 off. The off days are yours if you want them.',
+    interests: ['Weightlifting', 'Grilling', 'Dogs', 'Camping', 'Big family', 'Craft beer', 'Soccer'],
+    intent: 'long-term', prefs: { ageMin: 28, ageMax: 40, maxDistanceKm: 50 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'want', pets: 'dog', faith: 3, politics: 'moderate', socialEnergy: 3 },
+    prompts: [{ question: 'The way to win me over is', answer: 'Be the person who remembers the names of everyone at the table.' }],
+    seeking: { kind: 'family', note: 'someone brave enough for a Sunday at his mother\'s' }
+  }),
+  makePerson({
+    id: 'c_yara', name: 'Yara', age: 31, gender: 'woman', interestedIn: ['man'],
+    city: 'Manhattan, NY', hometown: 'Barcelona, ES', job: 'Architect', education: 'Columbia GSAPP',
+    heightCm: 170, hair: 'brown', accent: 45,
+    bio: 'I notice your apartment before I notice you. Sorry in advance.',
+    interests: ['Design', 'Museums', 'Running', 'Travel', 'Painting', 'Coffee', 'Poetry'],
+    intent: 'long-term', prefs: { ageMin: 28, ageMax: 40, maxDistanceKm: 35 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'open', pets: 'none', faith: 1, politics: 'left', socialEnergy: 3 },
+    prompts: [{ question: 'I geek out on', answer: 'Stairwells. There is a right way and everyone is doing it wrong.' }],
+  }),
+  makePerson({
+    id: 'c_omar', name: 'Omar', age: 29, gender: 'man', interestedIn: ['woman'],
+    city: 'Brooklyn, NY', hometown: 'Detroit, MI', region: 'Michigan', job: 'Physical therapist',
+    education: 'Michigan', heightCm: 182, hair: 'black', accent: 165,
+    bio: 'I fix other people\'s knees and ignore my own. Big Sunday-dinner energy.',
+    interests: ['Basketball', 'Weightlifting', 'Cooking', 'Sunday dinners', 'Podcasts', 'Dogs', 'Trivia'],
+    intent: 'long-term', prefs: { ageMin: 25, ageMax: 35, maxDistanceKm: 40 },
+    lifestyle: { drinking: 'never', smoking: 'never', exercise: 'often', kids: 'want', pets: 'dog', faith: 4, politics: 'moderate', socialEnergy: 3 },
+    prompts: [{ question: "I'll fall for you if", answer: 'You can be quiet with me on a long drive and not make it weird.' }],
+  }),
+  makePerson({
+    id: 'c_elena', name: 'Elena', age: 38, gender: 'woman', interestedIn: ['man'],
+    city: 'Queens, NY', hometown: 'Mexico City, MX', job: 'Nurse practitioner', education: 'Hunter',
+    heightCm: 158, hair: 'brown', accent: 20,
+    bio: 'Mom to a very serious seven-year-old. He vets everyone. Good luck.',
+    interests: ['Cooking', 'Dancing', 'Church', 'Beach days', 'Gardening', 'Big family', 'Baking'],
+    intent: 'long-term', prefs: { ageMin: 33, ageMax: 50, maxDistanceKm: 40 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'sometimes', kids: 'have-done', pets: 'none', faith: 4, politics: 'moderate', socialEnergy: 3 },
+    prompts: [{ question: 'A perfect Sunday looks like', answer: 'Church, then my mother\'s kitchen, then absolutely nothing until Monday.' }],
+  }),
+  makePerson({
+    id: 'c_grace', name: 'Grace', age: 25, gender: 'woman', interestedIn: ['man', 'woman'],
+    city: 'Boston, MA', hometown: 'Manila, PH', job: 'PhD student, marine biology', education: 'BU',
+    heightCm: 162, hair: 'black', accent: 190,
+    bio: 'Ask me about octopuses. Do not ask me when I am finishing.',
+    interests: ['Surfing', 'Beach days', 'Reading', 'Photography', 'Coffee', 'Hiking', 'Meditation'],
+    intent: 'friends-first', prefs: { ageMin: 23, ageMax: 33, maxDistanceKm: 60 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'open', pets: 'cat', faith: 2, politics: 'left', socialEnergy: 2 },
+    prompts: [{ question: 'I geek out on', answer: 'Tide charts. I have opinions about the moon.' }],
+  }),
+  makePerson({
+    id: 'c_will', name: 'Will', age: 41, gender: 'man', interestedIn: ['woman'],
+    city: 'Hoboken, NJ', hometown: 'Dublin, IE', job: 'Carpenter, own shop', education: 'Trade school',
+    heightCm: 186, hair: 'red', accent: 130,
+    bio: 'Two kids, every other week. They are funnier than me and I have made peace with it.',
+    interests: ['Woodworking', 'DIY projects', 'Craft beer', 'Soccer', 'Camping', 'Dogs', 'Grilling'],
+    intent: 'long-term', prefs: { ageMin: 33, ageMax: 48, maxDistanceKm: 55 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'sometimes', kids: 'have-done', pets: 'dog', faith: 2, politics: 'moderate', socialEnergy: 2 },
+    prompts: [{ question: 'The one thing my family always says about me', answer: 'That I can fix anything except the tap in my own kitchen.' }],
+  }),
+  makePerson({
+    id: 'c_isabel', name: 'Isabel', age: 33, gender: 'woman', interestedIn: ['man', 'woman'],
+    city: 'Brooklyn, NY', hometown: 'Miami, FL', job: 'Trial lawyer', education: 'NYU Law',
+    heightCm: 167, hair: 'brown', accent: 320,
+    bio: 'I argue for a living and I am trying very hard not to do it on dates.',
+    interests: ['Running', 'Wine', 'Theatre', 'Reading', 'Trying new restaurants', 'Travel', 'Cats'],
+    intent: 'long-term', prefs: { ageMin: 30, ageMax: 44, maxDistanceKm: 40 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'dont-want', pets: 'cat', faith: 1, politics: 'left', socialEnergy: 3 },
+    prompts: [{ question: "Don't hate me if I", answer: 'Ask three follow-up questions. It is a compliment. Usually.' }],
+    seeking: { kind: 'party', note: 'a date for her firm\'s black-tie thing in November' }
+  }),
+  makePerson({
+    id: 'c_sam', name: 'Sam', age: 27, gender: 'nonbinary', interestedIn: ['woman', 'nonbinary'],
+    city: 'Brooklyn, NY', hometown: 'Portland, OR', job: 'Ceramicist & bar manager', education: 'RISD',
+    heightCm: 172, hair: 'other', accent: 85,
+    bio: 'I made the mug you are drinking from. Statistically, somewhere, that is true.',
+    interests: ['Painting', 'Thrifting', 'Live music', 'Craft beer', 'Cats', 'Poetry', 'Dancing'],
+    intent: 'long-term-open', prefs: { ageMin: 23, ageMax: 35, maxDistanceKm: 25 },
+    lifestyle: { drinking: 'often', smoking: 'sometimes', exercise: 'sometimes', kids: 'dont-want', pets: 'cat', faith: 1, politics: 'left', socialEnergy: 4 },
+    prompts: [{ question: 'My simple pleasures are', answer: 'Opening the kiln. It is Christmas or it is a funeral.' }],
+    circle: {
+      id: 'mm_bex', matchmaker: 'Bex', relationship: 'Their best friend',
+      pitch: 'Makes beautiful things and undersells every one of them.',
+    },
+  }),
+  makePerson({
+    id: 'c_kenji', name: 'Kenji', age: 37, gender: 'man', interestedIn: ['woman'],
+    city: 'San Francisco, CA', hometown: 'Seattle, WA', job: 'Product lead', education: 'Berkeley',
+    heightCm: 176, hair: 'black', accent: 235,
+    bio: 'Recovering workaholic. Ask me how the recovery is going, I will lie.',
+    interests: ['Climbing', 'Startups', 'Coffee', 'Skiing', 'Investing', 'Cooking', 'Meditation'],
+    intent: 'long-term', prefs: { ageMin: 29, ageMax: 42, maxDistanceKm: 50 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'open', pets: 'dog', faith: 1, politics: 'moderate', socialEnergy: 2 },
+    prompts: [{ question: 'A perfect Sunday looks like', answer: 'Phone in a drawer, 6am at the gym, nothing scheduled after noon.' }],
+  }),
+  makePerson({
+    id: 'c_carmen', name: 'Carmen', age: 34, gender: 'woman', interestedIn: ['man'],
+    city: 'Chicago, IL', hometown: 'Philadelphia, PA', job: 'ER nurse', education: 'Temple',
+    heightCm: 169, hair: 'brown', accent: 5,
+    bio: 'Night shifts, strong opinions about breakfast food, zero tolerance for flakes.',
+    interests: ['Yoga', 'Cooking', 'Dogs', 'Podcasts', 'Road trips', 'Baking', 'Sunday dinners'],
+    intent: 'long-term', prefs: { ageMin: 30, ageMax: 44, maxDistanceKm: 45 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'want', pets: 'dog', faith: 3, politics: 'moderate', socialEnergy: 3 },
+    prompts: [{ question: 'The way to win me over is', answer: 'Text when you say you will. That is the whole bar and people trip on it.' }],
+  }),
+  makePerson({
+    id: 'c_andre', name: 'André', age: 30, gender: 'man', interestedIn: ['woman', 'nonbinary'],
+    city: 'Montreal, QC', hometown: 'Montreal, QC', job: 'Film editor', education: 'Concordia',
+    heightCm: 179, hair: 'brown', accent: 265,
+    bio: 'I cut other people\'s stories for a living and I am bad at telling my own.',
+    interests: ['Film', 'Vinyl', 'Cycling', 'Languages', 'Museums', 'Coffee', 'Stand-up comedy'],
+    intent: 'long-term-open', prefs: { ageMin: 25, ageMax: 38, maxDistanceKm: 70 },
+    lifestyle: { drinking: 'sometimes', smoking: 'sometimes', exercise: 'sometimes', kids: 'open', pets: 'cat', faith: 1, politics: 'left', socialEnergy: 3 },
+    prompts: [{ question: 'I geek out on', answer: 'The exact frame a scene should end on. It is never where you think.' }],
+  }),
+  makePerson({
+    id: 'c_hannah', name: 'Hannah', age: 28, gender: 'woman', interestedIn: ['man'],
+    city: 'Nashville, TN', hometown: 'Nashville, TN', job: 'Songwriter & barista', education: 'Belmont',
+    heightCm: 166, hair: 'blonde', accent: 55,
+    bio: 'If we break up you will hear about it in three-quarter time.',
+    interests: ['Live music', 'Concerts', 'Coffee', 'Poetry', 'Thrifting', 'Church', 'Karaoke'],
+    intent: 'long-term', prefs: { ageMin: 25, ageMax: 36, maxDistanceKm: 60 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'sometimes', kids: 'want', pets: 'dog', faith: 4, politics: 'moderate', socialEnergy: 4 },
+    prompts: [{ question: 'Two truths and a lie', answer: 'I have opened for a Grammy winner. I cannot drive stick. I hate country music.' }],
+    seeking: { kind: 'trip', note: 'a passenger for a drive to a festival in the fall' }
+  }),
+  makePerson({
+    id: 'c_raj', name: 'Raj', age: 32, gender: 'man', interestedIn: ['woman'],
+    city: 'Jersey City, NJ', hometown: 'Mumbai, IN', job: 'Quant', education: 'Carnegie Mellon',
+    heightCm: 174, hair: 'black', accent: 145,
+    bio: 'I am much funnier in person, which is a terrible thing to have to write down.',
+    interests: ['Chess', 'Investing', 'Running', 'Cooking', 'Trivia', 'Travel', 'Board games'],
+    intent: 'long-term', prefs: { ageMin: 26, ageMax: 36, maxDistanceKm: 40 },
+    lifestyle: { drinking: 'never', smoking: 'never', exercise: 'often', kids: 'want', pets: 'none', faith: 3, politics: 'moderate', socialEnergy: 2 },
+    prompts: [{ question: 'My most irrational fear is', answer: 'Group photos where I have to decide what to do with my hands.' }],
+    circle: {
+      id: 'mm_dev', matchmaker: 'Dev', relationship: 'His best friend',
+      pitch: 'He is genuinely hilarious and genuinely bad at showing it in writing. Trust me.',
+    },
+  }),
+  makePerson({
+    id: 'c_tessa', name: 'Tessa', age: 24, gender: 'woman', interestedIn: ['man', 'woman'],
+    city: 'Denver, CO', hometown: 'Denver, CO', job: 'Ski instructor, summers on trail crew',
+    education: 'CU Boulder', heightCm: 171, hair: 'blonde', accent: 175,
+    bio: 'My car has 190k miles and a mattress in the back. It is a feature.',
+    interests: ['Skiing', 'Hiking', 'Camping', 'Climbing', 'Road trips', 'Dogs', 'Craft beer'],
+    intent: 'short-term', prefs: { ageMin: 22, ageMax: 32, maxDistanceKm: 80 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'open', pets: 'dog', faith: 1, politics: 'left', socialEnergy: 4 },
+    prompts: [{ question: "Don't hate me if I", answer: 'Check the snow report mid-conversation from November to April.' }],
+  }),
+  makePerson({
+    id: 'c_gabriel', name: 'Gabriel', age: 39, gender: 'man', interestedIn: ['woman'],
+    city: 'Manhattan, NY', hometown: 'Rome, IT', job: 'Orthopedic surgeon', education: 'Sapienza',
+    heightCm: 181, hair: 'grey', accent: 30,
+    bio: 'Long hours, short patience for small talk, very long memory for a good meal.',
+    interests: ['Medicine', 'Wine', 'Cycling', 'Museums', 'Cooking', 'Travel', 'Sunday dinners'],
+    intent: 'long-term', prefs: { ageMin: 30, ageMax: 44, maxDistanceKm: 40 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'open', pets: 'none', faith: 3, politics: 'moderate', socialEnergy: 2 },
+    prompts: [{ question: 'The way to win me over is', answer: 'Have somewhere you want to take me. Anywhere. Just have a plan.' }],
+  }),
+  makePerson({
+    id: 'c_dee', name: 'Dee', age: 29, gender: 'woman', interestedIn: ['woman', 'nonbinary'],
+    city: 'Brooklyn, NY', hometown: 'Baltimore, MD', job: 'Middle school counselor', education: 'Maryland',
+    heightCm: 164, hair: 'black', accent: 110,
+    bio: 'Professionally patient. Personally, do not make me wait for a text.',
+    interests: ['Teaching', 'Journaling', 'Yoga', 'Board games', 'Baking', 'Cats', 'Reading'],
+    intent: 'long-term', prefs: { ageMin: 25, ageMax: 37, maxDistanceKm: 30 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'sometimes', kids: 'want', pets: 'cat', faith: 3, politics: 'left', socialEnergy: 2 },
+    prompts: [{ question: "I'll fall for you if", answer: 'You are the person who texts the group chat first.' }],
+  }),
+  makePerson({
+    id: 'c_finn', name: 'Finn', age: 26, gender: 'man', interestedIn: ['woman'],
+    city: 'Boston, MA', hometown: 'Dublin, IE', job: 'Junior architect', education: 'UCD',
+    heightCm: 177, hair: 'red', accent: 195,
+    bio: 'Moved here two years ago. Still say "grand" about things that are not grand.',
+    interests: ['Soccer', 'Design', 'Craft beer', 'Photography', 'Running', 'Travel', 'Stand-up comedy'],
+    intent: 'long-term-open', prefs: { ageMin: 23, ageMax: 32, maxDistanceKm: 50 },
+    lifestyle: { drinking: 'often', smoking: 'never', exercise: 'often', kids: 'open', pets: 'dog', faith: 2, politics: 'left', socialEnergy: 4 },
+    prompts: [{ question: 'My simple pleasures are', answer: 'A pint after a match my team lost. It hits different.' }],
+  }),
+  makePerson({
+    id: 'c_leila', name: 'Leila', age: 35, gender: 'woman', interestedIn: ['man'],
+    city: 'Washington, DC', hometown: 'Toronto, ON', job: 'Policy analyst', education: 'Georgetown',
+    heightCm: 168, hair: 'brown', accent: 75,
+    bio: 'I read the whole bill. Someone has to. Please distract me.',
+    interests: ['Reading', 'Running', 'Podcasts', 'Museums', 'Wine', 'Travel', 'Trivia'],
+    intent: 'long-term', prefs: { ageMin: 31, ageMax: 45, maxDistanceKm: 50 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'open', pets: 'cat', faith: 1, politics: 'left', socialEnergy: 3 },
+    prompts: [{ question: 'A perfect Sunday looks like', answer: 'Farmers market, then the crossword, then pretending I will cook all of it.' }],
+  }),
+  makePerson({
+    id: 'c_malik', name: 'Malik', age: 31, gender: 'man', interestedIn: ['woman'],
+    city: 'Atlanta, GA', hometown: 'Atlanta, GA', job: 'Music producer', education: 'Georgia State',
+    heightCm: 184, hair: 'black', accent: 225,
+    bio: 'Studio until 3am, church at 11. Both of those are the real me.',
+    interests: ['Live music', 'Vinyl', 'Church', 'Basketball', 'Grilling', 'Big family', 'Dancing'],
+    intent: 'long-term', prefs: { ageMin: 26, ageMax: 38, maxDistanceKm: 50 },
+    lifestyle: { drinking: 'never', smoking: 'never', exercise: 'sometimes', kids: 'want', pets: 'none', faith: 4, politics: 'moderate', socialEnergy: 4 },
+    prompts: [{ question: 'The one thing my family always says about me', answer: 'That I have not answered a phone call since 2019. Texts only. I am working on it.' }],
+    circle: {
+      id: 'mm_tanya', matchmaker: 'Tanya', relationship: 'Her cousin',
+      pitch: 'Talented, loyal, and terrible at answering the phone. Text him.',
+    },
+  }),
+  makePerson({
+    id: 'c_zoe', name: 'Zoe', age: 30, gender: 'woman', interestedIn: ['man', 'woman', 'nonbinary'],
+    city: 'Los Angeles, CA', hometown: 'Sydney, AU', job: 'Stunt performer', education: 'NIDA',
+    heightCm: 170, hair: 'blonde', accent: 95,
+    bio: 'I fall down stairs for money. I am otherwise very careful.',
+    interests: ['Surfing', 'Weightlifting', 'Film', 'Beach days', 'Travel', 'Dogs', 'Meditation'],
+    intent: 'figuring-it-out', prefs: { ageMin: 26, ageMax: 40, maxDistanceKm: 60 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'open', pets: 'dog', faith: 1, politics: 'left', socialEnergy: 4 },
+    prompts: [{ question: 'Two truths and a lie', answer: 'I doubled for someone you love. I broke my arm twice. I am afraid of heights.' }],
+  }),
+  makePerson({
+    id: 'c_rowan', name: 'Rowan', age: 29, gender: 'nonbinary', interestedIn: ['woman', 'nonbinary', 'man'],
+    city: 'Brooklyn, NY', hometown: 'New Haven, CT', job: 'Bookshop buyer', education: 'Wesleyan',
+    heightCm: 169, hair: 'brown', accent: 260,
+    bio: 'I will recommend you a book based on one sentence about your childhood. I am usually right.',
+    interests: ['Reading', 'Poetry', 'Board games', 'Coffee', 'Thrifting', 'Cats', 'Museums'],
+    intent: 'long-term', prefs: { ageMin: 24, ageMax: 38, maxDistanceKm: 30 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'sometimes', kids: 'open', pets: 'cat', faith: 1, politics: 'left', socialEnergy: 2 },
+    prompts: [{ question: 'The way to win me over is', answer: 'Finish the book I gave you. That is it. That is the whole thing.' }],
+    circle: {
+      id: 'mm_bex', matchmaker: 'Bex', relationship: 'Their coworker',
+      pitch: 'Will remember what you said three weeks ago and ask how it went.',
+    },
+  }),
+  makePerson({
+    id: 'c_val', name: 'Val', age: 33, gender: 'woman', interestedIn: ['woman', 'nonbinary'],
+    city: 'Queens, NY', hometown: 'Chicago, IL', job: 'Union organiser', education: 'Loyola',
+    heightCm: 174, hair: 'brown', accent: 120,
+    bio: 'I am very good at talking to strangers and very bad at ending phone calls.',
+    interests: ['Volunteering', 'Dancing', 'Cooking', 'Live music', 'Dogs', 'Podcasts', 'Big family'],
+    intent: 'long-term', prefs: { ageMin: 26, ageMax: 42, maxDistanceKm: 45 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'sometimes', kids: 'want', pets: 'dog', faith: 2, politics: 'left', socialEnergy: 4 },
+    prompts: [{ question: 'A perfect Sunday looks like', answer: 'Farmers market, a long walk, and dinner with more people than chairs.' }],
+  }),
+  makePerson({
+    id: 'c_june', name: 'June', age: 26, gender: 'woman', interestedIn: ['woman', 'nonbinary'],
+    city: 'Brooklyn, NY', hometown: 'Austin, TX', job: 'Tattoo apprentice', education: 'Self-taught',
+    heightCm: 161, hair: 'other', accent: 310,
+    bio: 'Covered in other people\'s ideas and slowly running out of arm.',
+    interests: ['Painting', 'Vinyl', 'Thrifting', 'Karaoke', 'Cats', 'Video games', 'Coffee'],
+    intent: 'friends-first', prefs: { ageMin: 22, ageMax: 34, maxDistanceKm: 25 },
+    lifestyle: { drinking: 'sometimes', smoking: 'sometimes', exercise: 'sometimes', kids: 'dont-want', pets: 'cat', faith: 1, politics: 'left', socialEnergy: 3 },
+    prompts: [{ question: 'My most irrational fear is', answer: 'Someone asking me to design their first tattoo at a party. It has happened four times.' }],
+    circle: {
+      id: 'mm_bex', matchmaker: 'Bex', relationship: 'Their sister',
+      pitch: 'Loud, loyal, and a complete softie under all that ink.',
+    },
+  }),
+  makePerson({
+    id: 'c_hassan', name: 'Hassan', age: 36, gender: 'man', interestedIn: ['woman'],
+    city: 'Jersey City, NJ', hometown: 'Toronto, ON', job: 'Civil engineer, transit', education: 'Waterloo',
+    heightCm: 179, hair: 'black', accent: 185,
+    bio: 'I design the train you complain about. I also complain about it.',
+    interests: ['Cycling', 'Chess', 'Cooking', 'Travel', 'Trivia', 'Reading', 'Tea'],
+    intent: 'long-term', prefs: { ageMin: 28, ageMax: 42, maxDistanceKm: 50 },
+    lifestyle: { drinking: 'never', smoking: 'never', exercise: 'often', kids: 'want', pets: 'none', faith: 4, politics: 'moderate', socialEnergy: 2 },
+    prompts: [{ question: "I'll fall for you if", answer: 'You have a strong opinion about something small and unimportant.' }],
+  }),
+  makePerson({
+    id: 'c_delia', name: 'Delia', age: 42, gender: 'woman', interestedIn: ['man'],
+    city: 'Brooklyn, NY', hometown: 'Providence, RI', job: 'Bakery owner', education: 'Johnson & Wales',
+    heightCm: 165, hair: 'grey', accent: 40,
+    bio: 'Up at four, asleep by nine. If you want a night owl, keep swiping. If you want croissants, hello.',
+    interests: ['Baking', 'Farmers markets', 'Gardening', 'Dogs', 'Reading', 'Sunday dinners', 'Wine'],
+    intent: 'long-term', prefs: { ageMin: 35, ageMax: 55, maxDistanceKm: 35 },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'sometimes', kids: 'have-done', pets: 'dog', faith: 2, politics: 'left', socialEnergy: 2 },
+    prompts: [{ question: "Don't hate me if I", answer: 'Fall asleep during the movie. It is not you, it is the 4am alarm.' }],
+    seeking: { kind: 'activity', note: 'someone to go to the farmers market and then a matinee' }
+  }),
+]
+
+/** Demo people you might be setting up — used by "Load a sample family". */
+export const SAMPLE_ROSTER: Person[] = [
+  makePerson({
+    id: 'r_maya', name: 'Maya', age: 30, gender: 'woman', interestedIn: ['man'],
+    city: 'Brooklyn, NY', hometown: 'Naples, IT', job: 'ICU nurse', education: 'NYU',
+    heightCm: 167, hair: 'brown', accent: 15,
+    bio: "Works too much, laughs too loud, hasn't been on a date since the group chat intervened.",
+    interests: ['Cooking', 'Sunday dinners', 'Big family', 'Live music', 'Dogs', 'Travel', 'Baking'],
+    intent: 'long-term', prefs: { ageMin: 28, ageMax: 40, maxDistanceKm: 40, heightMin: 175, heightMax: 200, hair: ['black', 'brown'], dealbreakers: ['must-want-kids', 'no-smokers'] },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'sometimes', kids: 'want', pets: 'dog', faith: 3, politics: 'moderate', socialEnergy: 3 },
+    prompts: [{ question: 'The one thing my family always says about me', answer: 'That I would give you the coat off my back and then complain about the cold.' }],
+    managed: {
+      kind: 'other', relationship: 'My older sister', consented: true,
+      pitch: 'She is the most loyal person I know and she is done with men who cannot plan a Tuesday.',
+    },
+  }),
+  makePerson({
+    id: 'r_nick', name: 'Nick', age: 34, gender: 'man', interestedIn: ['woman'],
+    city: 'Jersey City, NJ', hometown: 'Brooklyn, NY', job: 'Electrician, union local 3',
+    education: 'Apprenticeship', heightCm: 180, hair: 'brown', accent: 205,
+    bio: 'Quiet guy, dry as a bone once he warms up. Fixes everything in the family for free.',
+    interests: ['DIY projects', 'Woodworking', 'Soccer', 'Dogs', 'Grilling', 'Camping', 'Craft beer'],
+    intent: 'long-term', prefs: { ageMin: 27, ageMax: 38, maxDistanceKm: 50, heightMin: 150, heightMax: 205, hair: [], dealbreakers: ['no-smokers'] },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'want', pets: 'dog', faith: 2, politics: 'moderate', socialEnergy: 2 },
+    prompts: [{ question: "Don't hate me if I", answer: 'Go quiet for a bit. It is never about you, I am just tired.' }],
+    managed: {
+      kind: 'other', relationship: 'My best friend since 4th grade', consented: true,
+      pitch: 'He will never brag about himself so I am doing it for him. Show up and he shows up for life.',
+    },
+  }),
+  makePerson({
+    id: 'r_jo', name: 'Jo', age: 27, gender: 'nonbinary', interestedIn: ['woman', 'nonbinary'],
+    city: 'Brooklyn, NY', hometown: 'Portland, OR', job: 'Illustrator', education: 'Pratt',
+    heightCm: 173, hair: 'other', accent: 290,
+    bio: 'Draws for a living, overthinks for free. Best person to bring to a party you hate.',
+    interests: ['Painting', 'Thrifting', 'Board games', 'Cats', 'Poetry', 'Live music', 'Coffee'],
+    intent: 'long-term-open', prefs: { ageMin: 24, ageMax: 34, maxDistanceKm: 30, heightMin: 150, heightMax: 205, hair: ['red', 'other'], dealbreakers: ['nearby-only'] },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'sometimes', kids: 'dont-want', pets: 'cat', faith: 1, politics: 'left', socialEnergy: 3 },
+    prompts: [{ question: 'I geek out on', answer: 'Other people\'s handwriting. I will absolutely analyse yours.' }],
+    managed: {
+      kind: 'other', relationship: 'My roommate', consented: true,
+      pitch: 'They keep matching with people who do not read. I am fixing this personally.',
+    },
+  }),
+  makePerson({
+    id: 'r_carla', name: 'Carla', age: 33, gender: 'woman', interestedIn: ['man'],
+    city: 'Queens, NY', hometown: 'Rome, IT', job: 'Dental hygienist', education: 'Hunter',
+    heightCm: 170, hair: 'brown', accent: 330,
+    bio: 'Blunt, warm, and completely done with apps. Agreed to one more round because I begged.',
+    interests: ['Travel', 'Wine', 'Dancing', 'Trying new restaurants', 'Big family', 'Beach days', 'Cooking'],
+    intent: 'long-term', prefs: { ageMin: 30, ageMax: 45, maxDistanceKm: 45, heightMin: 178, heightMax: 205, hair: ['black', 'brown', 'grey'], dealbreakers: ['no-one-with-kids'] },
+    lifestyle: { drinking: 'sometimes', smoking: 'never', exercise: 'often', kids: 'open', pets: 'none', faith: 3, politics: 'moderate', socialEnergy: 4 },
+    prompts: [{ question: "I'll fall for you if", answer: 'You can hold your own with my mother. That is the only test.' }],
+    managed: {
+      kind: 'other', relationship: 'My cousin', consented: true,
+      pitch: 'Everyone says she is intimidating. She is not. She is just tall and says what she thinks.',
+    },
+  }),
+]
+
+/** yyyy-mm-dd, `days` from now — keeps the sample occasions always upcoming. */
+function inDays(days: number): string {
+  const d = new Date(Date.now() + days * 86_400_000)
+  return d.toISOString().slice(0, 10)
+}
+
+/** Sample occasions, loaded alongside the sample family. */
+export const SAMPLE_OCCASIONS: Occasion[] = [
+  {
+    id: 'o_sample_double',
+    profileId: 'r_nick',
+    kind: 'double-date',
+    title: 'Double date with me and Gabi',
+    date: inDays(9),
+    city: 'Brooklyn, NY',
+    vibe: 'low-key',
+    details:
+      "Dinner then that bar with the shuffleboard. Gabi and I have been trying to get Nick out for a year. He'll be quiet for twenty minutes and then he's the funniest person there.",
+    companions: [
+      { name: 'You', relationship: 'Me' },
+      { name: 'Gabi', relationship: 'My girlfriend' },
+    ],
+    byMatchmaker: true,
+    open: true,
+    createdAt: Date.now(),
+  },
+  {
+    id: 'o_sample_wedding',
+    profileId: 'r_maya',
+    kind: 'wedding',
+    title: "Our cousin's wedding in Rome",
+    date: inDays(38),
+    city: 'Rome, IT',
+    vibe: 'big-night',
+    details:
+      'Four days, one enormous family, and an aunt who will ask your intentions before the antipasti. Black tie. Open bar, so it evens out.',
+    companions: [{ name: 'The entire family', relationship: 'All of us' }],
+    byMatchmaker: true,
+    open: true,
+    createdAt: Date.now(),
+  },
+  {
+    id: 'o_sample_tickets',
+    profileId: 'r_jo',
+    kind: 'activity',
+    title: 'Two tickets to a show on Friday',
+    date: inDays(4),
+    city: 'Brooklyn, NY',
+    vibe: 'low-key',
+    details: "Jo's friend cancelled. Small venue, loud band, they know the drummer.",
+    companions: [],
+    byMatchmaker: true,
+    open: true,
+    createdAt: Date.now(),
+  },
+]
+
+export interface SeedLink {
+  aId: string
+  bId: string
+  kind: Tie
+  label: string
+}
+
+/**
+ * The community's own social graph — who is whose cousin, who met at work.
+ * Labels read the same from both sides, so one record serves both profiles.
+ * These exist from the start, sample family or not.
+ */
+export const COMMUNITY_CONNECTIONS: SeedLink[] = [
+  // Rosa's lot, who all know each other.
+  { aId: 'c_daniel', bId: 'c_luca', kind: 'friend', label: 'Work in the same kitchen' },
+  { aId: 'c_daniel', bId: 'c_sofia', kind: 'friend', label: 'Childhood friends' },
+  { aId: 'c_sofia', bId: 'c_yara', kind: 'friend', label: 'Design school friends' },
+  { aId: 'c_luca', bId: 'c_gabriel', kind: 'family', label: 'Cousins' },
+
+  // Dev's people.
+  { aId: 'c_priya', bId: 'c_raj', kind: 'friend', label: 'College friends' },
+  { aId: 'c_raj', bId: 'c_theo', kind: 'friend', label: 'Roommates' },
+  { aId: 'c_priya', bId: 'c_grace', kind: 'friend', label: 'Med school friends' },
+  { aId: 'c_raj', bId: 'c_hassan', kind: 'friend', label: 'Chess club' },
+
+  // Tanya's.
+  { aId: 'c_marcus', bId: 'c_malik', kind: 'family', label: 'Cousins' },
+  { aId: 'c_marcus', bId: 'c_amara', kind: 'friend', label: 'Volunteer together' },
+  { aId: 'c_amara', bId: 'c_dee', kind: 'friend', label: 'Church friends' },
+  { aId: 'c_malik', bId: 'c_hannah', kind: 'friend', label: 'Made a record together' },
+
+  // Bex's.
+  { aId: 'c_sam', bId: 'c_rowan', kind: 'friend', label: 'Work friends' },
+  { aId: 'c_rowan', bId: 'c_june', kind: 'friend', label: 'Neighbours' },
+  { aId: 'c_june', bId: 'c_nina', kind: 'friend', label: 'Band friends' },
+  { aId: 'c_sam', bId: 'c_val', kind: 'friend', label: 'Bar regulars' },
+
+  // A few more so the graph isn't only within circles.
+  { aId: 'c_ruth', bId: 'c_delia', kind: 'friend', label: 'Dog park friends' },
+  { aId: 'c_isabel', bId: 'c_leila', kind: 'friend', label: 'Law school friends' },
+  { aId: 'c_jonah', bId: 'c_finn', kind: 'friend', label: 'Cycling club' },
+  { aId: 'c_ben', bId: 'c_carmen', kind: 'friend', label: 'Both work nights' },
+  { aId: 'c_omar', bId: 'c_marcus', kind: 'friend', label: 'Play ball together' },
+  { aId: 'c_elena', bId: 'c_carmen', kind: 'friend', label: 'Nurses together' },
+  { aId: 'c_tessa', bId: 'c_zoe', kind: 'friend', label: 'Climbing partners' },
+  { aId: 'c_kenji', bId: 'c_theo', kind: 'friend', label: 'Old coworkers' },
+  { aId: 'c_will', bId: 'c_finn', kind: 'family', label: 'Uncle and nephew' },
+  { aId: 'c_andre', bId: 'c_sofia', kind: 'friend', label: 'Film festival friends' },
+
+]
+
+/** Links between the sample family, loaded with them. */
+export const SAMPLE_CONNECTIONS: SeedLink[] = [
+  { aId: 'r_maya', bId: 'r_carla', kind: 'family', label: 'Cousins' },
+  { aId: 'r_nick', bId: 'r_jo', kind: 'friend', label: 'Same building' },
+  { aId: 'r_maya', bId: 'r_jo', kind: 'friend', label: 'Friends since the wedding' },
+]

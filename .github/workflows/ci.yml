@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npx tsc -b
+
+      - name: Tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Single-file build
+        run: npm run build:single
+
+      # The web assets are bundled into the iOS binary, so a broken web build
+      # is a broken app. Native compilation itself needs macOS and is done in
+      # Xcode when archiving.
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: wingman-${{ github.sha }}
+          path: |
+            dist/
+            wingman.html
+          retention-days: 14

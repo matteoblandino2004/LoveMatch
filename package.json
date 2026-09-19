@@ -1,0 +1,39 @@
+{
+  "name": "wingman",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Be someone's wingman — build profiles for your friends and family, swipe on their behalf, and find them a date for the wedding.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "ios": "npm run build && npx cap sync ios && npx cap open ios",
+    "ios:sync": "npm run build && npx cap sync ios",
+    "build:single": "vite build --mode single && node scripts/build-single.mjs",
+    "preflight": "node scripts/preflight.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "dependencies": {
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/camera": "^8.2.4",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/keyboard": "^8.0.5",
+    "@capacitor/status-bar": "^8.0.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8"
+  }
+}
