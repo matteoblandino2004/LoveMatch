@@ -25,6 +25,8 @@ npm run build    # typecheck + production bundle into dist/
 npm run preview  # serve the built bundle
 npm run ios      # build, sync and open the iOS app in Xcode (macOS)
 npm run build:single   # one self-contained wingman.html you can just double-click
+npm run preflight      # checks everything Apple checks, before you spend a build
+npm run screenshots    # regenerate the App Store screenshots from the running app
 ```
 
 `wingman.html` in the repo root is that build, checked in so you can download and open it without
@@ -196,7 +198,11 @@ ios/                        the Capacitor iOS app — open App.xcworkspace in Xc
 appstore/screenshots/       six 6.7" App Store screenshots, generated from the running app
 docs/IOS.md                 building, signing and running on a device
 docs/APP-STORE.md           submission runbook, review-guideline risks, draft listing copy
+docs/index.html             landing, support and privacy pages — GitHub Pages serves /docs
+docs/support.html           the support URL Apple requires
 docs/privacy.html           the privacy policy Apple requires a URL for
+scripts/preflight.mjs       mechanical check of every submission requirement
+.github/workflows/ci.yml    typecheck, tests and both builds on every push
 ```
 
 React + TypeScript + Vite, plus Capacitor for the iOS shell — and nothing else. The swipe gestures,

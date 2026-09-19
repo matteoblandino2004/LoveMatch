@@ -59,8 +59,13 @@ Everything below happens on a Mac with Xcode.
 ```bash
 git clone <this repo> && cd LoveMatch
 npm install
+npm run preflight    # checks everything Apple checks, before you spend a build
 npm run ios          # builds, syncs, opens Xcode
 ```
+
+`npm run preflight` fails on exactly one thing to start with: the bundle id is still
+`com.wingman.app`, which is a placeholder you don't own. Change it in Xcode (App target → Signing &
+Capabilities) and in `capacitor.config.ts`, then run it again and it goes green.
 
 1. **Signing.** Xcode → App target → Signing & Capabilities → tick *Automatically manage signing*,
    pick your Team, and change the Bundle Identifier from `com.wingman.app` to something you own
@@ -81,20 +86,30 @@ Every upload needs a new build number: Xcode → General → Build (1, 2, 3…).
 
 | Item | Where |
 |---|---|
-| App icon, 1024px | `ios/App/App/Assets.xcassets/AppIcon.appiconset` |
-| Screenshots, 6.7" (1290×2796) | `appstore/screenshots/` — six of them |
+| App icon, 1024px, no alpha | `ios/App/App/Assets.xcassets/AppIcon.appiconset` |
+| Screenshots, 6.7" (1290×2796) | `appstore/screenshots/` — six of them, regenerate with `npm run screenshots` |
 | Privacy policy page | `docs/privacy.html` — host it, see below |
+| Support page | `docs/support.html` — same host |
+| Landing page | `docs/index.html` |
 | Age rating | 17+ (dating apps are always 17+) |
 | App Privacy answers | **Data Not Collected** — nothing leaves the device |
 | Encryption | Already declared: `ITSAppUsesNonExemptEncryption = false` |
 | Account deletion | Settings → Reset everything |
+| Device family | iPhone only, so no iPad screenshots are required |
+| Crash handling | An error screen with reload and reset, not a white screen |
 
-### Hosting the privacy policy
+### Hosting the privacy and support pages
 
-Apple requires a live URL. Free option, five minutes: in the GitHub repo → Settings → Pages →
-Source: deploy from branch, folder `/docs`. The policy lands at
-`https://<your-username>.github.io/LoveMatch/privacy.html`. Use that as both the Privacy Policy URL
-and, if you have nothing better, the Support URL.
+Apple requires a live URL for both, and App Store Connect will not let you submit without them.
+Free, five minutes: GitHub repo → Settings → Pages → Source: *Deploy from a branch*, branch
+`main`, folder `/docs`. A minute later you have:
+
+- Privacy Policy URL — `https://<your-username>.github.io/LoveMatch/privacy.html`
+- Support URL — `https://<your-username>.github.io/LoveMatch/support.html`
+- Marketing URL (optional) — `https://<your-username>.github.io/LoveMatch/`
+
+All three pages are written, styled and cross-linked. `docs/.nojekyll` is there because GitHub
+Pages otherwise hides files it mistakes for drafts.
 
 ---
 
@@ -159,6 +174,19 @@ and, if you have nothing better, the Support URL.
 > To verify no data is collected, run the app in airplane mode — every feature works.
 
 ---
+
+## TestFlight beta notes
+
+App Store Connect asks what testers should try. Paste this:
+
+> Wingman is a matchmaking app you use for other people. Tap "I'm 18 or older", then
+> "Just show me — load a sample family" to fill the app with example profiles.
+>
+> Worth trying: swipe a few cards and tap one to see the compatibility breakdown; open Occasions
+> and tap "Find someone for this" on the double date; tap the avatar top-right to switch into
+> someone else's account and approve a wingman request; add a photo to a profile.
+>
+> Everything is stored on your phone — no account, no server. Settings → Reset everything wipes it.
 
 ## After it's live
 

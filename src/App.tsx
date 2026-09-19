@@ -12,6 +12,7 @@ import { OccasionEditor } from './screens/OccasionEditor'
 import { Sheet } from './components/Sheet'
 import { Avatar } from './components/Avatar'
 import { Confetti } from './components/Confetti'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { blankPerson, displayRelationship } from './lib/people'
 import { AccountSwitcher } from './components/AccountSwitcher'
 import { currentAccount, requestsAwaiting, swipeableFor } from './lib/accounts'
@@ -392,8 +393,10 @@ export default function App() {
     void initNative()
   }, [])
   return (
-    <AppProvider>
-      <Shell />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <Shell />
+      </AppProvider>
+    </ErrorBoundary>
   )
 }
