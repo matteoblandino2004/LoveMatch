@@ -1,4 +1,7 @@
-# Shipping Wingman to the App Store
+# Building and running the iOS app
+
+> Going to the **App Store** specifically? Read [APP-STORE.md](APP-STORE.md) first — it covers the
+> review guidelines this app runs into, and what to do about them. This page is the build mechanics.
 
 The iOS project is already in this repo at `ios/`. It's a [Capacitor](https://capacitorjs.com)
 wrapper: the React app you run with `npm run dev` is the same code that runs inside the native

@@ -6,6 +6,8 @@ import { blankPerson } from '../lib/people'
 export function Onboarding({ onFinishProfile }: { onFinishProfile: () => void }) {
   const { createAccount, loadSampleRoster } = useApp()
   const [name, setName] = useState('')
+  // Dating apps are 17+ on the App Store and 18+ to use. Ask once, up front.
+  const [adult, setAdult] = useState(false)
 
   function makeAccount() {
     const me = blankPerson('self')
@@ -41,8 +43,24 @@ export function Onboarding({ onFinishProfile }: { onFinishProfile: () => void })
       </div>
 
       <button
+        className="row"
+        style={{ marginTop: 14, borderColor: adult ? 'rgba(255,77,121,0.45)' : undefined }}
+        onClick={() => setAdult((on) => !on)}
+        aria-pressed={adult}
+      >
+        <div style={{ fontSize: 20 }}>{adult ? '✅' : '⬜️'}</div>
+        <div className="row-main">
+          <div className="row-title">I'm 18 or older</div>
+          <div className="row-sub" style={{ whiteSpace: 'normal' }}>
+            Wingman is for adults, and so is everyone you set up.
+          </div>
+        </div>
+      </button>
+
+      <button
         className="btn btn-primary btn-block"
-        style={{ marginTop: 6 }}
+        style={{ marginTop: 12 }}
+        disabled={!adult}
         onClick={() => {
           makeAccount()
           onFinishProfile()
@@ -54,6 +72,7 @@ export function Onboarding({ onFinishProfile }: { onFinishProfile: () => void })
       <hr className="hr" />
       <button
         className="btn btn-ghost btn-block"
+        disabled={!adult}
         onClick={() => {
           makeAccount()
           loadSampleRoster()
@@ -61,9 +80,13 @@ export function Onboarding({ onFinishProfile }: { onFinishProfile: () => void })
       >
         Just show me — load a sample family
       </button>
-      <p className="tiny muted center" style={{ marginTop: 12 }}>
-        Everything stays on this device. No account, no server, no one selling your cousin's data.
-      </p>
+
+      <div className="card tiny" style={{ marginTop: 16 }}>
+        <b>Two things worth knowing.</b> Everything stays on this device — no account, no server, no
+        one selling your cousin's data. And the people you'll swipe through are fictional characters
+        that ship with the app: Wingman isn't connected to a real dating pool, so nobody on the other
+        end is waiting for a message.
+      </div>
     </div>
   )
 }

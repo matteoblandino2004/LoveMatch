@@ -193,7 +193,10 @@ src/
   screens/                  Onboarding, Swipe, Roster, Events, Matches, Notifications,
                             ProfileEditor, OccasionEditor
 ios/                        the Capacitor iOS app — open App.xcworkspace in Xcode
-docs/IOS.md                 signing, TestFlight and App Review notes
+appstore/screenshots/       six 6.7" App Store screenshots, generated from the running app
+docs/IOS.md                 building, signing and running on a device
+docs/APP-STORE.md           submission runbook, review-guideline risks, draft listing copy
+docs/privacy.html           the privacy policy Apple requires a URL for
 ```
 
 React + TypeScript + Vite, plus Capacitor for the iOS shell — and nothing else. The swipe gestures,

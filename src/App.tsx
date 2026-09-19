@@ -237,8 +237,12 @@ function Shell() {
         </div>
         <hr className="hr" />
         <p className="tiny muted">
-          A note on manners: make a profile for someone only if they'd be glad you did. The app asks
-          you to confirm they said yes, and it's not just a checkbox — it's the whole idea.
+          A note on manners: make an account for someone only if they'd be glad you did. They have to
+          approve you before you can swipe for them, and they can take that back whenever they like.
+        </p>
+        <p className="tiny muted" style={{ marginTop: 10 }}>
+          Everyone outside your own accounts is a fictional character bundled with the app. Wingman
+          doesn't connect to a real dating pool, and nothing you do here reaches another person.
         </p>
       </Sheet>
 
