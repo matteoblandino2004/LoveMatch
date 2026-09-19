@@ -3,8 +3,8 @@ import {
   type ReactNode,
 } from 'react'
 import type {
-  AppNotification, AppState, Connection, Invite, InviteStatus, Match, Occasion, Person,
-  SwipeDirection, Tie,
+  AppNotification, AppState, Connection, GrantStatus, Invite, InviteStatus, Match, Occasion,
+  Person, SwipeDirection, Tie, WingmanGrant,
 } from '../types'
 import { clearState, emptyState, loadState, saveState } from '../lib/storage'
 import { clearAllPhotos, deletePhotos } from '../lib/photos'
@@ -14,9 +14,14 @@ import { uid } from '../lib/id'
 import { SAMPLE_CONNECTIONS, SAMPLE_OCCASIONS, SAMPLE_ROSTER } from '../lib/seed'
 import { displayRelationship } from '../lib/people'
 import { involves, makeConnection } from '../lib/connections'
+import { canSwipeFor, decideRequest, grantBetween, isOnDevice } from '../lib/accounts'
 
 type Action =
-  | { type: 'account/create'; name: string }
+  | { type: 'account/create'; person: Person }
+  | { type: 'account/switch'; id: string }
+  | { type: 'grant/request'; ownerId: string; wingmanId: string; message?: string }
+  | { type: 'grant/respond'; id: string; status: Extract<GrantStatus, 'approved' | 'declined'> }
+  | { type: 'grant/revoke'; id: string }
   | { type: 'profile/save'; person: Person }
   | { type: 'profile/remove'; id: string }
   | { type: 'profile/setActive'; id: string }
@@ -72,31 +77,125 @@ function nameOf(state: AppState, id: string): string {
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
-    case 'account/create':
-      return { ...state, account: { name: action.name, createdAt: Date.now() } }
-
-    case 'profile/save': {
-      const exists = state.rosterIds.includes(action.person.id)
-      const next: AppState = {
+    case 'account/create': {
+      const person = action.person
+      const exists = state.accountIds.includes(person.id)
+      return {
         ...state,
-        people: { ...state.people, [action.person.id]: action.person },
-        rosterIds: exists ? state.rosterIds : [...state.rosterIds, action.person.id],
-        activeProfileId: state.activeProfileId ?? action.person.id,
+        people: { ...state.people, [person.id]: person },
+        accountIds: exists ? state.accountIds : [...state.accountIds, person.id],
+        currentAccountId: person.id,
+        activeProfileId: person.id,
       }
-      if (exists) return next
-      const who = displayRelationship(action.person)
+    }
+
+    case 'account/switch': {
+      if (!state.accountIds.includes(action.id)) return state
+      return {
+        ...state,
+        currentAccountId: action.id,
+        // Whoever you were swiping as doesn't carry across accounts.
+        activeProfileId: action.id,
+      }
+    }
+
+    case 'grant/request': {
+      if (action.ownerId === action.wingmanId) return state
+      const existing = grantBetween(state, action.ownerId, action.wingmanId)
+      if (existing && (existing.status === 'pending' || existing.status === 'approved')) return state
+
+      // Someone signed in here answers for themselves; anyone else replies in
+      // their own time.
+      const here = isOnDevice(state, action.ownerId)
+      const { delayMs } = decideRequest(state, action.ownerId, action.wingmanId)
+      const grant: WingmanGrant = {
+        id: uid('g_'),
+        ownerId: action.ownerId,
+        wingmanId: action.wingmanId,
+        status: 'pending',
+        message: action.message?.trim() || undefined,
+        requestedAt: Date.now(),
+        revealAt: here ? undefined : Date.now() + delayMs,
+      }
+      const grants = existing
+        ? state.grants.map((g) => (g.id === existing.id ? grant : g))
+        : [grant, ...state.grants]
+
+      const next: AppState = { ...state, grants }
+      const owner = nameOf(state, action.ownerId)
+      const wingman = nameOf(state, action.wingmanId)
       return {
         ...next,
         notifications: notify(next, {
-          kind: 'profile-added',
-          title: `${action.person.name} is on your roster`,
-          body:
-            action.person.managed?.kind === 'self'
-              ? "Your own profile is live. You can swipe for yourself and let your people swipe for you."
-              : `You're now matchmaking for ${action.person.name} (${who.toLowerCase()}). Start swiping on their behalf.`,
-          profileId: action.person.id,
+          kind: 'wingman-request',
+          title: here ? `${wingman} wants to be your wingman` : `Asked ${owner} to be their wingman`,
+          body: here
+            ? `${wingman} is asking to swipe for you.${action.message ? ` “${action.message}”` : ''}`
+            : `Waiting on ${owner} to say yes.${action.message ? ` You said: “${action.message}”` : ''}`,
+          profileId: action.ownerId,
+          grantId: grant.id,
+          audienceId: here ? action.ownerId : action.wingmanId,
         }),
       }
+    }
+
+    case 'grant/respond': {
+      const grant = state.grants.find((g) => g.id === action.id)
+      if (!grant || grant.status !== 'pending') return state
+      return applyGrantAnswer(state, grant, action.status === 'approved', undefined)
+    }
+
+    case 'grant/revoke': {
+      const grant = state.grants.find((g) => g.id === action.id)
+      if (!grant) return state
+      const grants = state.grants.map((g) =>
+        g.id === action.id ? { ...g, status: 'revoked' as GrantStatus, respondedAt: Date.now() } : g,
+      )
+      // Stop swiping as someone who just took the keys back.
+      const activeProfileId =
+        state.activeProfileId === grant.ownerId && state.currentAccountId === grant.wingmanId
+          ? state.currentAccountId
+          : state.activeProfileId
+      return { ...state, grants, activeProfileId }
+    }
+
+    case 'profile/save': {
+      const exists = state.accountIds.includes(action.person.id)
+      const next: AppState = {
+        ...state,
+        people: { ...state.people, [action.person.id]: action.person },
+        accountIds: exists ? state.accountIds : [...state.accountIds, action.person.id],
+        activeProfileId: state.activeProfileId ?? action.person.id,
+      }
+      if (exists) return next
+
+      const who = displayRelationship(action.person)
+      const forSomeoneElse =
+        action.person.managed?.kind === 'other' &&
+        state.currentAccountId !== null &&
+        state.currentAccountId !== action.person.id
+
+      const announced: AppState = {
+        ...next,
+        notifications: notify(next, {
+          kind: 'profile-added',
+          title: `${action.person.name} has an account`,
+          body:
+            action.person.managed?.kind === 'self'
+              ? 'Your own profile is live. Swipe for yourself, and let friends ask to swipe for you.'
+              : `${action.person.name} (${who.toLowerCase()}) is set up. Now they have to approve you before you can swipe for them.`,
+          profileId: action.person.id,
+          audienceId: state.currentAccountId ?? undefined,
+        }),
+      }
+      if (!forSomeoneElse) return announced
+
+      // Making someone's account doesn't make you their wingman — ask.
+      return reducer(announced, {
+        type: 'grant/request',
+        ownerId: action.person.id,
+        wingmanId: state.currentAccountId as string,
+      })
     }
 
     case 'profile/remove': {
@@ -104,12 +203,17 @@ function reducer(state: AppState, action: Action): AppState {
       // The profile's photos are bytes in IndexedDB — take them with it.
       void deletePhotos(people[action.id]?.photos ?? [])
       delete people[action.id]
-      const rosterIds = state.rosterIds.filter((id) => id !== action.id)
+      const accountIds = state.accountIds.filter((id) => id !== action.id)
+      const currentAccountId =
+        state.currentAccountId === action.id ? accountIds[0] ?? null : state.currentAccountId
       return {
         ...state,
         people,
-        rosterIds,
-        activeProfileId: state.activeProfileId === action.id ? rosterIds[0] ?? null : state.activeProfileId,
+        accountIds,
+        currentAccountId,
+        grants: state.grants.filter((g) => g.ownerId !== action.id && g.wingmanId !== action.id),
+        activeProfileId:
+          state.activeProfileId === action.id ? currentAccountId : state.activeProfileId,
         swipes: state.swipes.filter((s) => s.profileId !== action.id),
         pending: state.pending.filter((p) => p.profileId !== action.id),
         matches: state.matches.filter((m) => m.profileId !== action.id),
@@ -120,8 +224,11 @@ function reducer(state: AppState, action: Action): AppState {
       }
     }
 
-    case 'profile/setActive':
+    case 'profile/setActive': {
+      if (!state.currentAccountId) return state
+      if (!canSwipeFor(state, state.currentAccountId, action.id)) return state
       return { ...state, activeProfileId: action.id }
+    }
 
     case 'swipe': {
       const swipeId = uid('s_')
@@ -320,7 +427,7 @@ function reducer(state: AppState, action: Action): AppState {
         if (!p.willMatch) continue
         next = applyMatch(next, p)
       }
-      return resolveInvites(next, action.now)
+      return resolveRequests(resolveInvites(next, action.now), action.now)
     }
 
     case 'notifications/readAll':
@@ -334,11 +441,29 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'seed/sample': {
       const people = { ...state.people }
-      const rosterIds = [...state.rosterIds]
+      const accountIds = [...state.accountIds]
+      const grants = [...state.grants]
       for (const person of SAMPLE_ROSTER) {
-        if (people[person.id] && rosterIds.includes(person.id)) continue
-        people[person.id] = person
-        rosterIds.push(person.id)
+        if (!people[person.id]) people[person.id] = person
+        // Everyone gets their own account on this device, so you can switch in
+        // as them and see the approval from their side.
+        if (!accountIds.includes(person.id)) accountIds.push(person.id)
+        // They already said yes — that's what the sample is demonstrating.
+        if (state.currentAccountId && person.id !== state.currentAccountId) {
+          const already = grants.some(
+            (g) => g.ownerId === person.id && g.wingmanId === state.currentAccountId,
+          )
+          if (!already) {
+            grants.push({
+              id: uid('g_'),
+              ownerId: person.id,
+              wingmanId: state.currentAccountId,
+              status: 'approved',
+              requestedAt: Date.now(),
+              respondedAt: Date.now(),
+            })
+          }
+        }
       }
       const occasions = [...state.occasions]
       for (const occasion of SAMPLE_OCCASIONS) {
@@ -356,10 +481,11 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         people,
-        rosterIds,
+        accountIds,
+        grants,
         occasions,
         connections,
-        activeProfileId: state.activeProfileId ?? rosterIds[0] ?? null,
+        activeProfileId: state.activeProfileId ?? state.currentAccountId ?? accountIds[0] ?? null,
       }
     }
 
@@ -439,6 +565,54 @@ function resolveInvites(state: AppState, now: number): AppState {
   return next
 }
 
+/** Answer every wingman request whose time has come. */
+function resolveRequests(state: AppState, now: number): AppState {
+  const due = state.grants.filter(
+    (g) => g.status === 'pending' && g.revealAt !== undefined && g.revealAt <= now,
+  )
+  if (!due.length) return state
+
+  let next = state
+  for (const grant of due) {
+    const { approved, reply } = decideRequest(next, grant.ownerId, grant.wingmanId)
+    next = applyGrantAnswer(next, grant, approved, reply)
+  }
+  return next
+}
+
+/** Record an answer to a request and tell whoever is waiting on it. */
+function applyGrantAnswer(
+  state: AppState,
+  grant: WingmanGrant,
+  approved: boolean,
+  reply: string | undefined,
+): AppState {
+  const status: GrantStatus = approved ? 'approved' : 'declined'
+  const grants = state.grants.map((g) =>
+    g.id === grant.id ? { ...g, status, respondedAt: Date.now(), revealAt: undefined, reply } : g,
+  )
+  const next: AppState = { ...state, grants }
+  const owner = nameOf(next, grant.ownerId)
+  const wingman = nameOf(next, grant.wingmanId)
+  return {
+    ...next,
+    notifications: notify(next, {
+      kind: approved ? 'wingman-approved' : 'wingman-declined',
+      title: approved
+        ? `${owner} said yes — you can swipe for them`
+        : `${owner} would rather swipe for themselves`,
+      body: reply
+        ? `“${reply}”`
+        : approved
+          ? `${wingman} can now swipe on ${owner}'s behalf. Pick them from the dropdown on the deck.`
+          : `${wingman}'s request was declined.`,
+      profileId: grant.ownerId,
+      grantId: grant.id,
+      audienceId: grant.wingmanId,
+    }),
+  }
+}
+
 const WITHDRAWN = 'Withdrawn — the spot was already taken.'
 
 /** Close out every invitation still waiting on an occasion that just filled. */
@@ -500,7 +674,11 @@ function applyMatch(state: AppState, source: MatchSource): AppState {
 
 interface Store {
   state: AppState
-  createAccount: (name: string) => void
+  createAccount: (person: Person) => void
+  switchAccount: (id: string) => void
+  requestWingman: (args: { ownerId: string; wingmanId: string; message?: string }) => void
+  respondToRequest: (id: string, status: 'approved' | 'declined') => void
+  revokeGrant: (id: string) => void
   saveProfile: (person: Person) => void
   removeProfile: (id: string) => void
   setActiveProfile: (id: string) => void
@@ -564,7 +742,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Store>(
     () => ({
       state,
-      createAccount: (name) => dispatch({ type: 'account/create', name }),
+      createAccount: (person) => dispatch({ type: 'account/create', person }),
+      switchAccount: (id) => dispatch({ type: 'account/switch', id }),
+      requestWingman: (args) => dispatch({ type: 'grant/request', ...args }),
+      respondToRequest: (id, status) => dispatch({ type: 'grant/respond', id, status }),
+      revokeGrant: (id) => dispatch({ type: 'grant/revoke', id }),
       saveProfile: (person) => dispatch({ type: 'profile/save', person }),
       removeProfile: (id) => dispatch({ type: 'profile/remove', id }),
       setActiveProfile: (id) => dispatch({ type: 'profile/setActive', id }),
@@ -598,7 +780,7 @@ export function useApp(): Store {
   return store
 }
 
-/** Convenience: the roster profile currently being swiped for. */
+/** Convenience: the profile currently being swiped for. */
 export function useActiveProfile(): Person | null {
   const { state } = useApp()
   const id = state.activeProfileId
@@ -607,10 +789,14 @@ export function useActiveProfile(): Person | null {
 
 export const _internal = { reducer, applyMatch }
 
+/** Unread notifications addressed to the account in use. */
 export function useUnreadCount(): number {
   const { state } = useApp()
   return useMemo(
-    () => state.notifications.filter((n) => !n.read).length,
-    [state.notifications],
+    () =>
+      state.notifications.filter(
+        (n) => !n.read && (!n.audienceId || n.audienceId === state.currentAccountId),
+      ).length,
+    [state.notifications, state.currentAccountId],
   )
 }

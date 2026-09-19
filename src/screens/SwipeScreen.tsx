@@ -12,6 +12,8 @@ import { CircleSheet } from '../components/CircleSheet'
 import { PeopleSearch } from '../components/PeopleSearch'
 import { Avatar } from '../components/Avatar'
 import { displayRelationship } from '../lib/people'
+import { canSwipeFor, currentAccount, swipeableFor } from '../lib/accounts'
+import { WingmanRequest } from '../components/WingmanRequest'
 import { VIBES } from '../lib/occasions'
 
 const VIBE_LABEL = Object.fromEntries(
@@ -42,8 +44,10 @@ export function SwipeScreen({
   const [note, setNote] = useState('')
   const [circleView, setCircleView] = useState<CircleView | null>(null)
   const [linking, setLinking] = useState<{ person: Person; kind: Tie } | null>(null)
+  const [asking, setAsking] = useState<Person | null>(null)
 
-  const roster = state.rosterIds.map((id) => state.people[id]).filter(Boolean)
+  const me = currentAccount(state)
+  const roster = swipeableFor(state, state.currentAccountId)
   const active = state.activeProfileId ? state.people[state.activeProfileId] : null
 
   const occasion = useMemo<Occasion | null>(() => {
@@ -199,7 +203,7 @@ export function SwipeScreen({
           )
         })}
         <button className="chip" style={{ cursor: 'pointer' }} onClick={onAddProfile}>
-          + Add
+          + Ask someone
         </button>
       </div>
         </>
@@ -259,13 +263,13 @@ export function SwipeScreen({
         <div className="tiny">
           {asMatchmaker ? (
             <>
-              You're the matchmaker for <b>{active.name}</b> ({displayRelationship(active).toLowerCase()}).
-              Anything you like gets sent to them with your name on it.
+              <b>{active.name}</b> approved you as their wingman. Anything you like gets sent to them
+              with your name on it — and they can take the keys back whenever they like.
             </>
           ) : (
             <>
-              You're swiping for <b>yourself</b>. Your people can swipe for you too — their picks land
-              in your notifications.
+              You're swiping for <b>yourself</b>. Friends who ask — and whom you approve — can swipe
+              for you too, and their picks land in your activity.
             </>
           )}
         </div>
@@ -367,6 +371,11 @@ export function SwipeScreen({
                 preview.managed ? (kind) => setLinking({ person: preview, kind }) : undefined
               }
               onRemoveConnection={preview.managed ? removeConnection : undefined}
+              onAskWingman={
+                me && preview.id !== me.id && !canSwipeFor(state, me.id, preview.id)
+                  ? () => setAsking(preview)
+                  : undefined
+              }
             />
             <div className="sheet-actions">
               {preview.managed ? (
@@ -438,6 +447,10 @@ export function SwipeScreen({
             }}
           />
         )}
+      </Sheet>
+
+      <Sheet open={!!asking} onClose={() => setAsking(null)}>
+        {asking && me && <WingmanRequest owner={asking} wingman={me} onDone={() => setAsking(null)} />}
       </Sheet>
 
       <Sheet open={!!linking} onClose={() => setLinking(null)}>

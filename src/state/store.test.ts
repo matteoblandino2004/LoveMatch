@@ -5,6 +5,7 @@ import { makePerson } from '../lib/people'
 import { decideReciprocal } from '../lib/matchmaking'
 import { decideInvite } from '../lib/occasions'
 import { connectionsFor, involves } from '../lib/connections'
+import { canSwipeFor, requestsAwaiting, requestsSent, swipeableFor } from '../lib/accounts'
 import type { AppState, Occasion, Person } from '../types'
 
 const { reducer } = _internal
@@ -35,16 +36,28 @@ function idThatMatchesLater(targetId: string, score: number): string {
   throw new Error('no delayed-matching id found')
 }
 
+/** A state where `you` are signed in and `profile` has approved you. */
 function withProfile(profile: Person): AppState {
-  return reducer(emptyState(), { type: 'profile/save', person: profile })
+  const me = makePerson({
+    id: 'me', name: 'You', age: 32, gender: 'man',
+    managed: { kind: 'self', relationship: 'Me', pitch: '', consented: true },
+  })
+  let state = reducer(emptyState(), { type: 'account/create', person: me })
+  state = reducer(state, { type: 'profile/save', person: profile })
+  if (profile.id !== me.id) {
+    state = reducer(state, { type: 'grant/request', ownerId: profile.id, wingmanId: me.id })
+    const grant = state.grants.find((g) => g.ownerId === profile.id)!
+    state = reducer(state, { type: 'grant/respond', id: grant.id, status: 'approved' })
+  }
+  return { ...state, activeProfileId: profile.id }
 }
 
 describe('profiles', () => {
   it('adds a profile to the roster, makes it active and announces it', () => {
     const state = withProfile(rosterProfile('r_a'))
-    expect(state.rosterIds).toEqual(['r_a'])
+    expect(state.accountIds).toContain('r_a')
     expect(state.activeProfileId).toBe('r_a')
-    expect(state.notifications[0].kind).toBe('profile-added')
+    expect(state.notifications.some((n) => n.kind === 'profile-added')).toBe(true)
   })
 
   it('edits in place without duplicating or re-announcing', () => {
@@ -53,7 +66,7 @@ describe('profiles', () => {
       type: 'profile/save',
       person: { ...first.people.r_a, name: 'Maya Rose' },
     })
-    expect(edited.rosterIds).toEqual(['r_a'])
+    expect(edited.accountIds).toEqual(first.accountIds)
     expect(edited.people.r_a.name).toBe('Maya Rose')
     expect(edited.notifications).toHaveLength(first.notifications.length)
   })
@@ -63,7 +76,7 @@ describe('profiles', () => {
     for (let i = 0; i < 25; i++) {
       state = reducer(state, { type: 'profile/save', person: rosterProfile(`r_${i}`) })
     }
-    expect(state.rosterIds).toHaveLength(25)
+    expect(state.accountIds.filter((id) => id.startsWith('r_'))).toHaveLength(25)
   })
 
   it('removes a profile along with everything attached to it', () => {
@@ -76,7 +89,7 @@ describe('profiles', () => {
     expect(state.matches).toHaveLength(1)
 
     state = reducer(state, { type: 'profile/remove', id })
-    expect(state.rosterIds).toHaveLength(0)
+    expect(state.accountIds).not.toContain(id)
     expect(state.matches).toHaveLength(0)
     expect(state.swipes).toHaveLength(0)
     expect(state.notifications.filter((n) => n.profileId === id)).toHaveLength(0)
@@ -197,6 +210,7 @@ describe('occasions', () => {
     const state = reducer(base, { type: 'occasion/save', occasion: occasionFor('r_a') })
     expect(state.occasions).toHaveLength(1)
     expect(state.notifications[0].kind).toBe('occasion')
+    expect(state.notifications[0].body).toContain('Double date')
     expect(state.notifications[0].body).toContain('Double date')
   })
 
@@ -446,5 +460,131 @@ describe('family and friends', () => {
     const state = reducer(emptyState(), { type: 'seed/sample' })
     expect(connectionsFor(state, 'r_maya', 'family').map((l) => l.person.id)).toContain('r_carla')
     expect(connectionsFor(state, 'r_maya', 'friend').map((l) => l.person.id)).toContain('r_jo')
+  })
+})
+
+describe('accounts and permission', () => {
+  const me = () =>
+    makePerson({
+      id: 'me', name: 'You', age: 32, gender: 'man',
+      managed: { kind: 'self', relationship: 'Me', pitch: '', consented: true },
+    })
+
+  function signedIn(): AppState {
+    return reducer(emptyState(), { type: 'account/create', person: me() })
+  }
+
+  it('signs you in as your own account and starts you on your own deck', () => {
+    const state = signedIn()
+    expect(state.currentAccountId).toBe('me')
+    expect(state.accountIds).toEqual(['me'])
+    expect(state.activeProfileId).toBe('me')
+  })
+
+  it('will not let you swipe for someone who has not approved you', () => {
+    let state = signedIn()
+    state = reducer(state, { type: 'profile/save', person: rosterProfile('r_a') })
+    state = reducer(state, { type: 'profile/setActive', id: 'r_a' })
+    expect(state.activeProfileId).toBe('me')
+    expect(swipeableFor(state, 'me').map((p) => p.id)).toEqual(['me'])
+  })
+
+  it('opens their deck once they approve, and shuts it when they take it back', () => {
+    let state = signedIn()
+    state = reducer(state, { type: 'profile/save', person: rosterProfile('r_a') })
+    state = reducer(state, {
+      type: 'grant/request', ownerId: 'r_a', wingmanId: 'me', message: 'let me drive',
+    })
+    const grant = state.grants.find((g) => g.ownerId === 'r_a')!
+    expect(grant.status).toBe('pending')
+    expect(canSwipeFor(state, 'me', 'r_a')).toBe(false)
+
+    state = reducer(state, { type: 'grant/respond', id: grant.id, status: 'approved' })
+    expect(canSwipeFor(state, 'me', 'r_a')).toBe(true)
+    expect(swipeableFor(state, 'me').map((p) => p.id)).toEqual(['me', 'r_a'])
+
+    state = reducer(state, { type: 'profile/setActive', id: 'r_a' })
+    expect(state.activeProfileId).toBe('r_a')
+
+    // They change their mind — you're put back on your own deck.
+    state = reducer(state, { type: 'grant/revoke', id: grant.id })
+    expect(canSwipeFor(state, 'me', 'r_a')).toBe(false)
+    expect(state.activeProfileId).toBe('me')
+  })
+
+  it('records a decline and leaves the deck shut', () => {
+    let state = signedIn()
+    state = reducer(state, { type: 'profile/save', person: rosterProfile('r_a') })
+    state = reducer(state, { type: 'grant/request', ownerId: 'r_a', wingmanId: 'me' })
+    const grant = state.grants.find((g) => g.ownerId === 'r_a')!
+    state = reducer(state, { type: 'grant/respond', id: grant.id, status: 'declined' })
+    expect(canSwipeFor(state, 'me', 'r_a')).toBe(false)
+    expect(state.notifications[0].kind).toBe('wingman-declined')
+  })
+
+  it('never asks on your own behalf, and never asks twice', () => {
+    let state = signedIn()
+    state = reducer(state, { type: 'profile/save', person: rosterProfile('r_a') })
+    const before = state.grants.length
+    state = reducer(state, { type: 'grant/request', ownerId: 'me', wingmanId: 'me' })
+    expect(state.grants).toHaveLength(before)
+
+    state = reducer(state, { type: 'grant/request', ownerId: 'r_a', wingmanId: 'me' })
+    const after = state.grants.length
+    state = reducer(state, { type: 'grant/request', ownerId: 'r_a', wingmanId: 'me' })
+    expect(state.grants).toHaveLength(after)
+  })
+
+  it('lets someone not signed in here answer in their own time', () => {
+    let state = signedIn()
+    // c_daniel is in the community, not on this device.
+    state = reducer(state, { type: 'grant/request', ownerId: 'c_daniel', wingmanId: 'me' })
+    const grant = state.grants.find((g) => g.ownerId === 'c_daniel')!
+    expect(grant.status).toBe('pending')
+    expect(grant.revealAt).toBeGreaterThan(Date.now())
+
+    state = reducer(state, { type: 'pending/resolve', now: Date.now() })
+    expect(state.grants.find((g) => g.id === grant.id)!.status).toBe('pending')
+
+    state = reducer(state, { type: 'pending/resolve', now: grant.revealAt! })
+    const answered = state.grants.find((g) => g.id === grant.id)!
+    expect(answered.status === 'approved' || answered.status === 'declined').toBe(true)
+    expect(answered.reply).toBeTruthy()
+  })
+
+  it("switches accounts and puts you on that account's own deck", () => {
+    let state = signedIn()
+    state = reducer(state, { type: 'profile/save', person: rosterProfile('r_a') })
+    state = reducer(state, { type: 'account/switch', id: 'r_a' })
+    expect(state.currentAccountId).toBe('r_a')
+    expect(state.activeProfileId).toBe('r_a')
+
+    state = reducer(state, { type: 'account/switch', id: 'me' })
+    expect(state.currentAccountId).toBe('me')
+  })
+
+  it('refuses to switch to an account that is not signed in here', () => {
+    const state = reducer(signedIn(), { type: 'account/switch', id: 'c_daniel' })
+    expect(state.currentAccountId).toBe('me')
+  })
+
+  it('keeps a request addressed to the account that has to answer it', () => {
+    let state = signedIn()
+    state = reducer(state, { type: 'profile/save', person: rosterProfile('r_a') })
+    state = reducer(state, { type: 'grant/request', ownerId: 'r_a', wingmanId: 'me' })
+    const note = state.notifications.find((n) => n.kind === 'wingman-request')!
+    expect(note.audienceId).toBe('r_a')
+    expect(requestsAwaiting(state, 'r_a')).toHaveLength(1)
+    expect(requestsAwaiting(state, 'me')).toHaveLength(0)
+    expect(requestsSent(state, 'me')).toHaveLength(1)
+  })
+
+  it('takes the permissions with a deleted account', () => {
+    let state = signedIn()
+    state = reducer(state, { type: 'profile/save', person: rosterProfile('r_a') })
+    state = reducer(state, { type: 'grant/request', ownerId: 'r_a', wingmanId: 'me' })
+    state = reducer(state, { type: 'profile/remove', id: 'r_a' })
+    expect(state.grants.some((g) => g.ownerId === 'r_a')).toBe(false)
+    expect(state.currentAccountId).toBe('me')
   })
 })

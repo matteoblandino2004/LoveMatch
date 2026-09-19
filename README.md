@@ -20,7 +20,7 @@ Xcode and sign with your Apple Developer account. See [docs/IOS.md](docs/IOS.md)
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 92 unit tests over the scoring engines, circles, occasions and the reducer
+npm test         # 102 unit tests over the scoring engines, circles, occasions and the reducer
 npm run build    # typecheck + production bundle into dist/
 npm run preview  # serve the built bundle
 npm run ios      # build, sync and open the iOS app in Xcode (macOS)
@@ -30,6 +30,18 @@ No backend, no API keys, no sign-up. Profiles and swipes live in `localStorage`;
 IndexedDB. Nothing leaves the device — the app makes no network requests at all.
 
 ## What it does
+
+**Accounts, and permission.** You have your own account, like any social app — your profile, your
+deck, your matches. Swiping for someone else is a permission they grant, not something you assume:
+you ask, they answer, and only then do they appear in the dropdown at the top of the deck. They can
+take it back whenever they like, and you're put straight back on your own deck.
+
+Several accounts can be signed in on one phone, and the avatar in the header switches between them
+the way Instagram does. Switching shows you that person's deck, their matches, their activity and
+the requests waiting on *their* answer — which is also how you approve a request while both people
+are sitting on the same sofa. People who aren't signed in here answer in their own time, and how
+likely they are to say yes depends on how they know you: family almost always, a friend usually, a
+stranger rarely.
 
 **Unlimited profiles.** Your roster holds one profile per person you're setting up, plus optionally
 your own. Each carries the usual dating-profile content (bio, photos-as-gradients, prompts,
@@ -154,6 +166,7 @@ src/
   lib/
     compatibility.ts        the scoring engine (pure, tested)
     matchmaking.ts          deck building + the reciprocity simulation (pure, tested)
+    accounts.ts             accounts, wingman permission, and who can see what (pure, tested)
     circles.ts              matchmaker circles + "who fits this person best?" ranking (pure, tested)
     connections.ts          the family/friend graph and people search (pure, tested)
     occasions.ts            occasion kinds, occasion-fit scoring, invitations (pure, tested)
@@ -166,8 +179,9 @@ src/
     storage.ts              localStorage load/save with a version gate
     options.ts, id.ts, time.ts
   state/store.tsx           one reducer, one context, all state transitions (tested)
-  components/               SwipeDeck (pointer-event drag), Photos, CircleSheet, CirclePanel,
-                            PeopleSearch, ProfileDetail, Sheet, Avatar, Meter
+  components/               SwipeDeck (pointer-event drag), Photos, AccountSwitcher,
+                            WingmanRequest, CircleSheet, CirclePanel, PeopleSearch,
+                            ProfileDetail, Sheet, Avatar, Meter
   screens/                  Onboarding, Swipe, Roster, Events, Matches, Notifications,
                             ProfileEditor, OccasionEditor
 ios/                        the Capacitor iOS app — open App.xcworkspace in Xcode
@@ -197,9 +211,10 @@ answer. There's a regression test for it.
 
 ## A note on manners
 
-Making a dating profile for someone who didn't ask is a real thing to do to a person. The editor
-asks you to confirm they said yes, and the roster keeps flagging it until you do. It's not a legal
-checkbox — it's the whole premise. Set up people who want to be set up.
+Making a dating profile for someone who didn't ask is a real thing to do to a person. That used to
+be a checkbox saying they'd consented; it's now the actual mechanism. Creating someone's account
+sends them a request, and until they approve it you cannot swipe for them — the dropdown simply
+doesn't offer them. Set up people who want to be set up.
 
 ## Privacy
 

@@ -13,14 +13,25 @@ function roster(id: string, over: Partial<Person> = {}): Person {
   })
 }
 
+/** Signed in as the first person, with everyone else having approved them. */
 function stateWith(people: Person[]): AppState {
   const base = emptyState()
   const added = Object.fromEntries(people.map((p) => [p.id, p]))
+  const me = people[0]?.id ?? null
   return {
     ...base,
     people: { ...base.people, ...added },
-    rosterIds: people.map((p) => p.id),
-    activeProfileId: people[0]?.id ?? null,
+    accountIds: people.map((p) => p.id),
+    currentAccountId: me,
+    activeProfileId: me,
+    grants: people.slice(1).map((p) => ({
+      id: `g_${p.id}`,
+      ownerId: p.id,
+      wingmanId: me as string,
+      status: 'approved' as const,
+      requestedAt: 0,
+      respondedAt: 0,
+    })),
   }
 }
 

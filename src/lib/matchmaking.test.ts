@@ -10,7 +10,8 @@ function stateWith(profile: Person): AppState {
   return {
     ...base,
     people: { ...base.people, [profile.id]: profile },
-    rosterIds: [profile.id],
+    accountIds: [profile.id],
+    currentAccountId: profile.id,
     activeProfileId: profile.id,
   }
 }

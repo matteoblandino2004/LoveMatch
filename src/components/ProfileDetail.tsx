@@ -26,12 +26,14 @@ interface Props {
   /** Offered only where the viewer can edit this person's circle. */
   onAddToCircle?: (kind: Tie) => void
   onRemoveConnection?: (connectionId: string) => void
+  /** Ask this person for permission to swipe on their behalf. */
+  onAskWingman?: () => void
 }
 
 /** Everything about one person, plus how they line up with `viewer`. */
 export function ProfileDetail({
   person, viewer, onOpenCircle, onCheckRoster, occasion, onOpenPerson, onAddToCircle,
-  onRemoveConnection,
+  onRemoveConnection, onAskWingman,
 }: Props) {
   const compat = viewer && viewer.id !== person.id ? compatibility(viewer, person) : null
   const fit = occasion && viewer ? occasionFit(occasion, viewer, person) : null
@@ -77,6 +79,12 @@ export function ProfileDetail({
             </button>
           )}
         </div>
+      )}
+
+      {onAskWingman && (
+        <button className="btn btn-ghost btn-sm btn-block" style={{ marginTop: 12 }} onClick={onAskWingman}>
+          🪽 Ask to be {person.name}'s wingman
+        </button>
       )}
 
       {onCheckRoster && (

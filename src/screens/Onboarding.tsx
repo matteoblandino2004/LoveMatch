@@ -1,73 +1,64 @@
 import { useState } from 'react'
 import { useApp } from '../state/store'
+import { blankPerson } from '../lib/people'
 
-/** First run: who's holding the phone, and what they're here to do. */
-export function Onboarding({ onCreateProfile }: { onCreateProfile: (kind: 'self' | 'other') => void }) {
+/** First run: make your own account. Everything else hangs off it. */
+export function Onboarding({ onFinishProfile }: { onFinishProfile: () => void }) {
   const { createAccount, loadSampleRoster } = useApp()
   const [name, setName] = useState('')
 
-  function start(kind: 'self' | 'other') {
-    createAccount(name.trim() || 'You')
-    onCreateProfile(kind)
-  }
-
-  function demo() {
-    createAccount(name.trim() || 'You')
-    loadSampleRoster()
+  function makeAccount() {
+    const me = blankPerson('self')
+    me.name = name.trim() || 'You'
+    createAccount(me)
+    return me
   }
 
   return (
     <div className="screen" style={{ paddingTop: 26 }}>
-      <div style={{ fontSize: 46, lineHeight: 1 }}>💘</div>
+      <div style={{ fontSize: 46, lineHeight: 1 }}>🪽</div>
       <h1 className="screen-title" style={{ marginTop: 14, fontSize: 32 }}>
         Be the reason
         <br />
         they finally meet.
       </h1>
       <p className="screen-sub" style={{ fontSize: 15, marginTop: 10 }}>
-        Wingman is a dating app you use <i>for other people</i>. Build a profile for your sister,
-        your best friend, your cousin who swears he's fine — then swipe on their behalf. When it's
-        mutual, everyone gets the notification.
+        Wingman is a dating app you use <i>for other people</i>. You get your own account and swipe
+        for yourself — and when a friend approves you, you can swipe for them too, then switch
+        straight back.
       </p>
 
       <div className="field" style={{ marginTop: 26 }}>
-        <label htmlFor="who">First — what should we call you?</label>
+        <label htmlFor="who">Your name</label>
         <input
           id="who"
           className="input"
-          placeholder="Your name"
+          placeholder="What your friends call you"
           value={name}
           onChange={(e) => setName(e.target.value)}
           autoComplete="given-name"
         />
       </div>
 
-      <div className="section-label">What brings you here?</div>
-      <div className="stack">
-        <button className="row" onClick={() => start('other')}>
-          <div style={{ fontSize: 26 }}>🧑‍🤝‍🧑</div>
-          <div className="row-main">
-            <div className="row-title">I'm setting someone up</div>
-            <div className="row-sub" style={{ whiteSpace: 'normal' }}>
-              Make a profile for them and start swiping. Add as many people as you want.
-            </div>
-          </div>
-          <div className="muted">›</div>
-        </button>
-        <button className="row" onClick={() => start('self')}>
-          <div style={{ fontSize: 26 }}>💁</div>
-          <div className="row-main">
-            <div className="row-title">I'm looking for myself</div>
-            <div className="row-sub" style={{ whiteSpace: 'normal' }}>
-              Build your own profile — and let your people swipe for you too.
-            </div>
-          </div>
-          <div className="muted">›</div>
-        </button>
-      </div>
+      <button
+        className="btn btn-primary btn-block"
+        style={{ marginTop: 6 }}
+        onClick={() => {
+          makeAccount()
+          onFinishProfile()
+        }}
+      >
+        Create my account
+      </button>
 
       <hr className="hr" />
-      <button className="btn btn-ghost btn-block" onClick={demo}>
+      <button
+        className="btn btn-ghost btn-block"
+        onClick={() => {
+          makeAccount()
+          loadSampleRoster()
+        }}
+      >
         Just show me — load a sample family
       </button>
       <p className="tiny muted center" style={{ marginTop: 12 }}>

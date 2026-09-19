@@ -9,7 +9,8 @@ function stateWith(people: Person[] = []): AppState {
   return {
     ...base,
     people: { ...base.people, ...Object.fromEntries(people.map((p) => [p.id, p])) },
-    rosterIds: people.map((p) => p.id),
+    accountIds: people.map((p) => p.id),
+    currentAccountId: people[0]?.id ?? null,
   }
 }
 

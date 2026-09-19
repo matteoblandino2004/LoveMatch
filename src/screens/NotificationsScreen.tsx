@@ -12,11 +12,19 @@ const ICONS: Record<NotificationKind, string> = {
   invite: '✉️',
   'invite-accepted': '🥂',
   'invite-declined': '🙇',
+  'wingman-request': '🪽',
+  'wingman-approved': '✅',
+  'wingman-declined': '🙅',
   tip: '💡',
 }
 
 export function NotificationsScreen({ onOpenMatches }: { onOpenMatches: () => void }) {
-  const { state, markNotificationsRead } = useApp()
+  const { state, markNotificationsRead, respondToRequest } = useApp()
+
+  // Notifications addressed to somebody else's account aren't yours to read.
+  const feed = state.notifications.filter(
+    (n) => !n.audienceId || n.audienceId === state.currentAccountId,
+  )
 
   // Opening the tab is the read receipt.
   useEffect(() => {
@@ -29,7 +37,7 @@ export function NotificationsScreen({ onOpenMatches }: { onOpenMatches: () => vo
       <h1 className="screen-title">Activity</h1>
       <p className="screen-sub">Matches, and every pick your matchmakers send your way.</p>
 
-      {state.notifications.length === 0 ? (
+      {feed.length === 0 ? (
         <div className="empty" style={{ marginTop: 24 }}>
           <span className="emoji">🔔</span>
           <b>Nothing yet</b>
@@ -39,7 +47,10 @@ export function NotificationsScreen({ onOpenMatches }: { onOpenMatches: () => vo
         </div>
       ) : (
         <div style={{ marginTop: 16 }}>
-          {state.notifications.map((n) => {
+          {feed.map((n) => {
+            const grant = n.grantId ? state.grants.find((g) => g.id === n.grantId) : undefined
+            const answerable =
+              grant?.status === 'pending' && grant.ownerId === state.currentAccountId
             const profile = n.profileId ? state.people[n.profileId] : null
             return (
               <button
@@ -78,6 +89,28 @@ export function NotificationsScreen({ onOpenMatches }: { onOpenMatches: () => vo
                   <div className="tiny muted" style={{ marginTop: 3 }}>
                     {timeAgo(n.at)}
                   </div>
+                  {answerable && grant && (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 9 }}>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          respondToRequest(grant.id, 'declined')
+                        }}
+                      >
+                        No thanks
+                      </button>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          respondToRequest(grant.id, 'approved')
+                        }}
+                      >
+                        Approve
+                      </button>
+                    </div>
+                  )}
                 </div>
               </button>
             )

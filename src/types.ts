@@ -189,6 +189,29 @@ export interface ManagedInfo {
   consented: boolean
 }
 
+export type GrantStatus = 'pending' | 'approved' | 'declined' | 'revoked'
+
+/**
+ * Permission to swipe for somebody else. Nobody gets to play wingman for a
+ * person who hasn't said yes — this is the record of that yes.
+ */
+export interface WingmanGrant {
+  id: string
+  /** Whose dating life it is. */
+  ownerId: string
+  /** Who is asking to swipe for them. */
+  wingmanId: string
+  status: GrantStatus
+  /** What the asker said when they asked. */
+  message?: string
+  requestedAt: number
+  respondedAt?: number
+  /** Set when the owner isn't signed in here and their answer is on its way. */
+  revealAt?: number
+  /** Their words when they answered. */
+  reply?: string
+}
+
 /** How two people in the app know each other. */
 export type Tie = 'family' | 'friend'
 
@@ -247,6 +270,9 @@ export interface Match {
 
 export type NotificationKind =
   | 'match'
+  | 'wingman-request'
+  | 'wingman-approved'
+  | 'wingman-declined'
   | 'matchmaker-swipe'
   | 'profile-added'
   | 'occasion'
@@ -266,15 +292,20 @@ export interface AppNotification {
   matchId?: string
   occasionId?: string
   inviteId?: string
+  grantId?: string
+  /** Which account's feed this belongs in. Undefined means everyone's. */
+  audienceId?: string
 }
 
 export interface AppState {
-  /** Whoever is holding the phone. */
-  account: { name: string; createdAt: number } | null
-  /** Everyone in the app: your roster plus the wider community. */
+  /** People signed in on this device, newest last. Each one is an account. */
+  accountIds: string[]
+  /** Whose account you're using right now. */
+  currentAccountId: string | null
+  /** Everyone in the app: the accounts here plus the wider community. */
   people: Record<string, Person>
-  /** Ids of the profiles you created, newest last. */
-  rosterIds: string[]
+  /** Permission to swipe on someone else's behalf. */
+  grants: WingmanGrant[]
   /** Ids of community profiles you can be shown. */
   communityIds: string[]
   swipes: Swipe[]
@@ -285,7 +316,7 @@ export interface AppState {
   /** Everyone's family and friends, as links between two people. */
   connections: Connection[]
   notifications: AppNotification[]
-  /** The roster profile you're currently swiping for. */
+  /** Whose deck you're swiping right now — yourself, or someone who approved you. */
   activeProfileId: string | null
   version: number
 }

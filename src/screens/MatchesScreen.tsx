@@ -6,6 +6,7 @@ import { Sheet } from '../components/Sheet'
 import { ProfileDetail } from '../components/ProfileDetail'
 import { compatibility, scoreLabel } from '../lib/compatibility'
 import { timeAgo } from '../lib/time'
+import { visibleProfileIds } from '../lib/accounts'
 
 export function MatchesScreen({ onGoSwipe }: { onGoSwipe: () => void }) {
   const { state, archiveMatch } = useApp()
@@ -14,9 +15,11 @@ export function MatchesScreen({ onGoSwipe }: { onGoSwipe: () => void }) {
   const [intro, setIntro] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
+  const mine = useMemo(() => new Set(visibleProfileIds(state)), [state])
+
   const visible = useMemo(
-    () => state.matches.filter((m) => m.archived === showArchived),
-    [state.matches, showArchived],
+    () => state.matches.filter((m) => m.archived === showArchived && mine.has(m.profileId)),
+    [state.matches, showArchived, mine],
   )
 
   const grouped = useMemo(() => {

@@ -13,6 +13,8 @@ import { Sheet } from './components/Sheet'
 import { Avatar } from './components/Avatar'
 import { Confetti } from './components/Confetti'
 import { blankPerson, displayRelationship } from './lib/people'
+import { AccountSwitcher } from './components/AccountSwitcher'
+import { currentAccount, requestsAwaiting, swipeableFor } from './lib/accounts'
 import { haptic, initNative } from './lib/native'
 import { scoreLabel } from './lib/compatibility'
 import { OCCASION_KINDS, blankOccasion, companionLine, whenLabel } from './lib/occasions'
@@ -35,13 +37,14 @@ type Celebration =
 function Shell() {
   const {
     state, saveProfile, removeProfile, setActiveProfile, saveOccasion, removeOccasion,
-    loadSampleRoster, resetEverything,
+    loadSampleRoster, resetEverything, createAccount,
   } = useApp()
   const [tab, setTab] = useState<Tab>('swipe')
   const [editing, setEditing] = useState<Person | null>(null)
   const [editingOccasion, setEditingOccasion] = useState<Occasion | null>(null)
   const [occasionId, setOccasionId] = useState<string | null>(null)
   const [settings, setSettings] = useState(false)
+  const [switching, setSwitching] = useState(false)
   const [celebrating, setCelebrating] = useState<Celebration | null>(null)
   const unread = useUnreadCount()
 
@@ -73,26 +76,20 @@ function Shell() {
     }
   }, [state.invites, state.occasions])
 
-  const roster = state.rosterIds.map((id) => state.people[id]).filter(Boolean)
+  const me = currentAccount(state)
+  const roster = swipeableFor(state, state.currentAccountId)
+  const toAnswer = requestsAwaiting(state, state.currentAccountId).length
 
   function newOccasionFor(profileId?: string) {
-    const target = profileId ?? state.activeProfileId ?? state.rosterIds[0]
+    const target = profileId ?? state.activeProfileId ?? state.currentAccountId ?? undefined
     if (!target) return
     setEditingOccasion(blankOccasion(target, state.people[target]?.city ?? ''))
   }
 
-  if (!state.account) {
+  if (!me) {
     return (
       <div className="app">
-        <Onboarding onCreateProfile={(kind) => setEditing(blankPerson(kind))} />
-        <EditorSheet
-          editing={editing}
-          onClose={() => setEditing(null)}
-          onSave={(person) => {
-            saveProfile(person)
-            setEditing(null)
-          }}
-        />
+        <Onboarding onFinishProfile={() => setTab('roster')} />
       </div>
     )
   }
@@ -102,8 +99,18 @@ function Shell() {
       <header className="topbar">
         <div className="wordmark">Wingman</div>
         <div style={{ flex: 1 }} />
-        <button className="btn btn-ghost btn-sm" onClick={() => setSettings(true)}>
-          {state.account.name} ⚙︎
+        <button
+          className="btn btn-ghost btn-sm"
+          style={{ padding: '5px 10px 5px 5px', gap: 7, position: 'relative' }}
+          onClick={() => setSwitching(true)}
+          aria-label={`Signed in as ${me.name}. Switch account.`}
+        >
+          <Avatar person={me} size={26} />
+          {me.name} ▾
+          {toAnswer > 0 && <span className="badge" style={{ top: -4, right: -4 }}>{toAnswer}</span>}
+        </button>
+        <button className="btn btn-ghost btn-sm" onClick={() => setSettings(true)} aria-label="Settings">
+          ⚙︎
         </button>
       </header>
 
@@ -118,6 +125,7 @@ function Shell() {
       {tab === 'roster' && (
         <RosterScreen
           onAdd={(kind) => setEditing(blankPerson(kind))}
+          onSwitchAccount={() => setSwitching(true)}
           onEdit={(person) => setEditing(person)}
           onSwipeFor={(id) => {
             setActiveProfile(id)
@@ -165,7 +173,7 @@ function Shell() {
           setEditing(null)
         }}
         onDelete={
-          editing && state.rosterIds.includes(editing.id)
+          editing && state.accountIds.includes(editing.id)
             ? () => {
                 removeProfile(editing.id)
                 setEditing(null)
@@ -202,8 +210,8 @@ function Shell() {
       <Sheet open={settings} onClose={() => setSettings(false)}>
         <h2 style={{ fontSize: 20 }}>Settings</h2>
         <p className="tiny muted" style={{ marginTop: 6 }}>
-          Signed in as {state.account.name}. Everything lives in this browser — clearing site data
-          clears your roster.
+          Signed in as {me.name}. Everything lives in this browser — clearing site data clears every
+          account on it.
         </p>
         <div className="stack" style={{ marginTop: 16 }}>
           <button
@@ -232,6 +240,18 @@ function Shell() {
           A note on manners: make a profile for someone only if they'd be glad you did. The app asks
           you to confirm they said yes, and it's not just a checkbox — it's the whole idea.
         </p>
+      </Sheet>
+
+      <Sheet open={switching} onClose={() => setSwitching(false)}>
+        <AccountSwitcher
+          onClose={() => setSwitching(false)}
+          onAddAccount={() => {
+            setSwitching(false)
+            const person = blankPerson('self')
+            createAccount(person)
+            setEditing(person)
+          }}
+        />
       </Sheet>
 
       {celebrating && (

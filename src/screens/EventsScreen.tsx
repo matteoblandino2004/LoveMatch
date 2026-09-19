@@ -5,6 +5,7 @@ import { OCCASION_KINDS, VIBES, companionLine, fitLabel, whenLabel } from '../li
 import { Avatar } from '../components/Avatar'
 import { Sheet } from '../components/Sheet'
 import { ProfileDetail } from '../components/ProfileDetail'
+import { visibleProfileIds } from '../lib/accounts'
 
 interface Props {
   onCreate: () => void
@@ -19,18 +20,20 @@ export function EventsScreen({ onCreate, onEdit, onFill, onAddProfile }: Props) 
   const [openInvites, setOpenInvites] = useState<Occasion | null>(null)
   const [viewing, setViewing] = useState<string | null>(null)
 
+  const mine = useMemo(() => new Set(visibleProfileIds(state)), [state])
+
   const sorted = useMemo(() => {
-    return [...state.occasions].sort((a, b) => {
+    return state.occasions.filter((o) => mine.has(o.profileId)).sort((a, b) => {
       if (a.open !== b.open) return a.open ? -1 : 1
       if (!a.date) return 1
       if (!b.date) return -1
       return a.date.localeCompare(b.date)
     })
-  }, [state.occasions])
+  }, [state.occasions, mine])
 
   const invitesFor = (id: string) => state.invites.filter((i) => i.occasionId === id)
 
-  if (!state.rosterIds.length) {
+  if (!state.currentAccountId) {
     return (
       <div className="screen">
         <h1 className="screen-title">Occasions</h1>

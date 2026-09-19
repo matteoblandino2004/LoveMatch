@@ -8,26 +8,35 @@ import { displayRelationship } from '../lib/people'
 import { buildDeck, eligibleCount } from '../lib/matchmaking'
 import { OCCASION_KINDS, whenLabel } from '../lib/occasions'
 import { PeopleSearch } from '../components/PeopleSearch'
+import { WingmanRequest } from '../components/WingmanRequest'
 import { connectionsFor, searchPeople } from '../lib/connections'
+import {
+  canSwipeFor, currentAccount, describeTie, grantBetween, isOnDevice, requestsAwaiting,
+  requestsSent, swipeableFor,
+} from '../lib/accounts'
 
 interface Props {
   onAdd: (kind: 'self' | 'other') => void
+  onSwitchAccount: () => void
   onEdit: (person: Person) => void
   onSwipeFor: (id: string) => void
   onAddOccasion: (id: string) => void
 }
 
 /** Everyone you're matchmaking for — plus yourself, if you're in the game. */
-export function RosterScreen({ onAdd, onEdit, onSwipeFor, onAddOccasion }: Props) {
-  const { state, removeConnection } = useApp()
+export function RosterScreen({ onAdd, onSwitchAccount, onEdit, onSwipeFor, onAddOccasion }: Props) {
+  const { state, removeConnection, respondToRequest, revokeGrant } = useApp()
   const [open, setOpen] = useState<Person | null>(null)
   const [linking, setLinking] = useState<{ person: Person; kind: Tie } | null>(null)
+  const [asking, setAsking] = useState<Person | null>(null)
   const [query, setQuery] = useState('')
 
   const found = query.trim() ? searchPeople(state, query, { limit: 12 }) : []
 
-  const roster = state.rosterIds.map((id) => state.people[id]).filter(Boolean)
-  const hasSelf = roster.some((p) => p.managed?.kind === 'self')
+  const me = currentAccount(state)
+  const roster = swipeableFor(state, state.currentAccountId)
+  const awaiting = requestsAwaiting(state, state.currentAccountId)
+  const sent = requestsSent(state, state.currentAccountId)
 
   function statsFor(person: Person) {
     const swipes = state.swipes.filter((s) => s.profileId === person.id)
@@ -51,10 +60,80 @@ export function RosterScreen({ onAdd, onEdit, onSwipeFor, onAddOccasion }: Props
     <div className="screen">
       <h1 className="screen-title">Your people</h1>
       <p className="screen-sub">
-        {roster.length
-          ? `${roster.length} profile${roster.length === 1 ? '' : 's'} — add as many as you want.`
-          : 'Nobody here yet.'}
+        You, plus everyone who has approved you as their wingman.
       </p>
+
+      {awaiting.length > 0 && (
+        <>
+          <div className="section-label">Waiting on you</div>
+          <div className="stack">
+            {awaiting.map((grant) => {
+              const asker = state.people[grant.wingmanId]
+              if (!asker) return null
+              return (
+                <div className="card" key={grant.id}>
+                  <div style={{ display: 'flex', gap: 11, alignItems: 'center' }}>
+                    <Avatar person={asker} size={42} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div className="row-title" style={{ fontSize: 14.5 }}>
+                        {asker.name} wants to swipe for you
+                      </div>
+                      <div className="row-sub">{describeTie(state, me!.id, asker.id)}</div>
+                    </div>
+                  </div>
+                  {grant.message && (
+                    <div className="note-quote" style={{ marginTop: 10 }}>
+                      “{grant.message}”
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 11 }}>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => respondToRequest(grant.id, 'declined')}
+                    >
+                      No thanks
+                    </button>
+                    <button
+                      className="btn btn-primary btn-sm btn-block"
+                      onClick={() => respondToRequest(grant.id, 'approved')}
+                    >
+                      Let them swipe for me
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {sent.length > 0 && (
+        <>
+          <div className="section-label">Waiting on them</div>
+          <div className="stack">
+            {sent.map((grant) => {
+              const owner = state.people[grant.ownerId]
+              if (!owner) return null
+              return (
+                <div className="row" key={grant.id} style={{ cursor: 'default' }}>
+                  <Avatar person={owner} size={38} />
+                  <div className="row-main">
+                    <div className="row-title" style={{ fontSize: 14 }}>
+                      {owner.name}
+                    </div>
+                    <div className="row-sub">
+                      {isOnDevice(state, owner.id)
+                        ? 'Switch to their account to answer'
+                        : 'Asked — no answer yet'}
+                    </div>
+                  </div>
+                  <span className="chip chip-amber tiny">Pending</span>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
 
       <div className="stack" style={{ marginTop: 18 }}>
         {roster.map((person) => {
@@ -119,6 +198,18 @@ export function RosterScreen({ onAdd, onEdit, onSwipeFor, onAddOccasion }: Props
                   Edit
                 </button>
               </div>
+              {!isSelf && (
+                <button
+                  className="btn btn-ghost btn-sm btn-block"
+                  style={{ marginTop: 8 }}
+                  onClick={() => {
+                    const grant = grantBetween(state, person.id, me!.id)
+                    if (grant) revokeGrant(grant.id)
+                  }}
+                >
+                  Stop being {person.name}'s wingman
+                </button>
+              )}
               <button
                 className="btn btn-ghost btn-sm btn-block"
                 style={{ marginTop: 8 }}
@@ -175,19 +266,19 @@ export function RosterScreen({ onAdd, onEdit, onSwipeFor, onAddOccasion }: Props
         <button className="row" onClick={() => onAdd('other')}>
           <div style={{ fontSize: 22 }}>➕</div>
           <div className="row-main">
-            <div className="row-title">Someone I'm setting up</div>
-            <div className="row-sub">A sibling, a friend, a cousin — no limit</div>
+            <div className="row-title">Set someone up</div>
+            <div className="row-sub" style={{ whiteSpace: 'normal' }}>
+              Make them an account. They approve you before you can swipe for them.
+            </div>
           </div>
         </button>
-        {!hasSelf && (
-          <button className="row" onClick={() => onAdd('self')}>
-            <div style={{ fontSize: 22 }}>💁</div>
-            <div className="row-main">
-              <div className="row-title">Myself</div>
-              <div className="row-sub">So your people can swipe for you too</div>
-            </div>
-          </button>
-        )}
+        <button className="row" onClick={onSwitchAccount}>
+          <div style={{ fontSize: 22 }}>🔄</div>
+          <div className="row-main">
+            <div className="row-title">Switch account</div>
+            <div className="row-sub">Use the app as someone else signed in here</div>
+          </div>
+        </button>
       </div>
 
       <Sheet open={!!open} onClose={() => setOpen(null)} labelledBy="profile-sheet-title">
@@ -198,6 +289,11 @@ export function RosterScreen({ onAdd, onEdit, onSwipeFor, onAddOccasion }: Props
               onOpenPerson={(person) => setOpen(person)}
               onAddToCircle={open.managed ? (kind) => setLinking({ person: open, kind }) : undefined}
               onRemoveConnection={open.managed ? removeConnection : undefined}
+              onAskWingman={
+                me && open.id !== me.id && !canSwipeFor(state, me.id, open.id)
+                  ? () => setAsking(open)
+                  : undefined
+              }
             />
             <div className="sheet-actions">
               {open.managed ? (
@@ -234,6 +330,12 @@ export function RosterScreen({ onAdd, onEdit, onSwipeFor, onAddOccasion }: Props
       <Sheet open={!!linking} onClose={() => setLinking(null)}>
         {linking && (
           <PeopleSearch subject={linking.person} kind={linking.kind} onDone={() => setLinking(null)} />
+        )}
+      </Sheet>
+
+      <Sheet open={!!asking} onClose={() => setAsking(null)}>
+        {asking && me && (
+          <WingmanRequest owner={asking} wingman={me} onDone={() => setAsking(null)} />
         )}
       </Sheet>
     </div>

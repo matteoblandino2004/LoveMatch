@@ -1,6 +1,7 @@
 import type { AppState, Person, Swipe } from '../types'
 import { MY_CIRCLE } from '../types'
 import { compatibility, eligibleFor } from './compatibility'
+import { swipeableFor } from './accounts'
 
 export interface Ranked {
   person: Person
@@ -43,15 +44,14 @@ export function rankAgainst(
 /** Everyone the same matchmaker is setting up. */
 export function circleMembers(state: AppState, circleId: string): Person[] {
   if (circleId === MY_CIRCLE) {
-    return state.rosterIds.map((id) => state.people[id]).filter(Boolean)
+    return swipeableFor(state, state.currentAccountId)
   }
   return Object.values(state.people).filter((p) => p.circle?.id === circleId)
 }
 
-/** "Who on my roster should meet this person?" */
+/** "Who that I can swipe for should meet this person?" */
 export function rosterFitFor(state: AppState, candidate: Person): Ranked[] {
-  const roster = state.rosterIds.map((id) => state.people[id]).filter(Boolean)
-  return rankAgainst(candidate, roster, (profile) =>
+  return rankAgainst(candidate, swipeableFor(state, state.currentAccountId), (profile) =>
     hasSwiped(state.swipes, profile.id, candidate.id),
   )
 }
