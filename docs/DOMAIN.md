@@ -1,5 +1,9 @@
 # Putting the site on your own domain
 
+> **First make sure the site itself is serving.** Repo → Settings → Pages → **Source** must be
+> **GitHub Actions**. If it says "Deploy from a branch", the workflow's deployment is ignored and
+> you get a 404 — see [SITE.md](SITE.md).
+
 The site is live at `https://matteoblandino2004.github.io/LoveMatch/`. Pointing your own domain at
 it takes about five minutes plus DNS propagation, and it stays free — GitHub Pages doesn't charge
 for custom domains or the certificate.
