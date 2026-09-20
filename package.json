@@ -14,7 +14,8 @@
     "ios:sync": "npm run build && npx cap sync ios",
     "build:single": "vite build --mode single && node scripts/build-single.mjs",
     "preflight": "node scripts/preflight.mjs",
-    "screenshots": "node scripts/screenshots.mjs"
+    "screenshots": "node scripts/screenshots.mjs",
+    "build:site": "npm run build && npm run build:single && node scripts/build-site.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

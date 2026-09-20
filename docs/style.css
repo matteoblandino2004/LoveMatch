@@ -36,3 +36,24 @@ a { color: #d63a63; }
 }
 nav { margin-top: 2.5rem; font-size: 0.92rem; }
 nav a { margin-right: 1.1rem; }
+
+.cta {
+  display: inline-block;
+  margin: 0.4rem 0.6rem 0.4rem 0;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-weight: 700;
+  text-decoration: none;
+  color: #2a0d16;
+  background: linear-gradient(135deg, #ff4d79, #ff7a59 55%, #ffc46b);
+  box-shadow: 0 10px 26px rgba(255, 77, 121, 0.28);
+}
+.cta.ghost {
+  background: none;
+  color: inherit;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  box-shadow: none;
+}
+@media (prefers-color-scheme: dark) {
+  .cta.ghost { border-color: rgba(255, 255, 255, 0.25); }
+}

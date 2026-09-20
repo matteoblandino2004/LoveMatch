@@ -196,6 +196,8 @@ src/
                             ProfileEditor, OccasionEditor
 ios/                        the Capacitor iOS app — open App.xcworkspace in Xcode
 appstore/screenshots/       six 6.7" App Store screenshots, generated from the running app
+docs/MAC-HANDOFF.md         the whole iOS release, start to finish, for when you have a Mac
+docs/DOMAIN.md              pointing your own domain at the live site
 docs/IOS.md                 building, signing and running on a device
 docs/APP-STORE.md           submission runbook, review-guideline risks, draft listing copy
 docs/index.html             landing, support and privacy pages — GitHub Pages serves /docs
