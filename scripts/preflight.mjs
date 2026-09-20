@@ -27,8 +27,8 @@ check('Bundle id is not the placeholder', () => {
   assert(match, 'no bundle id found in the Xcode project')
   const id = match[1].trim()
   assert(
-    id !== 'com.wingman.app',
-    `still com.wingman.app — change it to a domain you own, in Xcode and capacitor.config.ts`,
+    !['com.wingman.app', 'com.example.app'].includes(id),
+    `${id} is a placeholder — set one you own, in Xcode and capacitor.config.ts`,
   )
   return id
 })

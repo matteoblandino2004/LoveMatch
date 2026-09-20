@@ -63,15 +63,16 @@ npm run preflight    # checks everything Apple checks, before you spend a build
 npm run ios          # builds, syncs, opens Xcode
 ```
 
-`npm run preflight` fails on exactly one thing to start with: the bundle id is still
-`com.wingman.app`, which is a placeholder you don't own. Change it in Xcode (App target → Signing &
-Capabilities) and in `capacitor.config.ts`, then run it again and it goes green.
+The bundle id is set to **`com.matteoblandino.wingman`**, in both the Xcode project and
+`capacitor.config.ts`. It has to be unique across the App Store, and this one will be. If you'd
+rather use a domain you own, change it in both places and re-run preflight.
 
-1. **Signing.** Xcode → App target → Signing & Capabilities → tick *Automatically manage signing*,
-   pick your Team, and change the Bundle Identifier from `com.wingman.app` to something you own
-   (`com.matteoblandino.wingman`). Change `appId` in `capacitor.config.ts` to match.
-2. **App Store Connect.** Create the app record: My Apps → + → New App. Platform iOS, your bundle
-   id, SKU anything (`wingman-001`), primary language English.
+1. **Signing.** Xcode → App target → Signing & Capabilities → tick *Automatically manage signing*
+   and pick your Team. The bundle id is already `com.matteoblandino.wingman`.
+2. **App Store Connect.** Create the app record: My Apps → + → New App. Platform iOS, bundle id
+   `com.matteoblandino.wingman` (register it first at developer.apple.com → Certificates,
+   Identifiers & Profiles → Identifiers → + → App IDs), SKU anything (`wingman-001`), primary
+   language English.
 3. **Archive.** Xcode → Product → Destination → *Any iOS Device (arm64)* → Product → Archive →
    Distribute App → App Store Connect → Upload.
 4. **TestFlight.** The build appears after 10–30 minutes of processing. Add yourself as an internal

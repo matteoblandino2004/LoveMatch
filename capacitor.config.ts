@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'com.wingman.app',
+  appId: 'com.matteoblandino.wingman',
   appName: 'Wingman',
   webDir: 'dist',
   ios: {
