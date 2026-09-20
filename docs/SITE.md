@@ -1,16 +1,28 @@
-# The website: how it's published, and how to fix a 404
+# The website: how it's published, and how to fix a deploy
 
-## The one setting that matters
+## Which branch is allowed to publish
 
-Repo → **Settings → Pages → Source** must be **GitHub Actions**.
+Pages remembers the branch it was first enabled from. Here that was
+`claude/matchmaking-app-friends-family-o191bu`, because that's the branch the workflow first ran
+on — so deploys from `main` get refused with:
 
-If it says *Deploy from a branch*, GitHub ignores what the workflow publishes and serves raw files
-from a branch instead. That's what produces the "404 — File not found. The site configured at this
-address does not contain the requested file" page: Pages is switched on, but it's looking in a
-place with no `index.html`.
+```
+Invalid deployment branch and no branch protection rules set in the environment.
+Deployments are only allowed from claude/matchmaking-app-friends-family-o191bu
+```
 
-Change that dropdown to **GitHub Actions** and the next deploy goes live. To trigger one without
-pushing: **Actions → Deploy website → Run workflow → main**.
+The counter-intuitive part is that setting the `github-pages` environment to **No restriction**
+makes this *worse*, not better. With no rule in the environment, GitHub falls back to that
+remembered Pages source branch. An explicit rule is what overrides it.
+
+**The fix:** Settings → **Environments → `github-pages`** → *Deployment branches and tags* →
+**Selected branches and tags** → **Add deployment branch or tag rule** → `main` → Add rule.
+
+Then **Actions → Deploy website → Run workflow → main**.
+
+If that still refuses, rebind the Pages source instead: Settings → **Pages** → Source →
+*Deploy from a branch* → `main` → Save → then switch Source back to **GitHub Actions**. That
+rewrites the remembered branch.
 
 ## What gets published
 
