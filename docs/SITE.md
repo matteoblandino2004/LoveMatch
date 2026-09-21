@@ -39,13 +39,12 @@ rewrites the remembered branch.
 
 The workflow runs on every push to `main`, so the site tracks the code.
 
-## The belt-and-braces fallback
+## Don't put a landing page at the repository root
 
-There's also an `index.html` at the repository root. It never serves when the source is GitHub
-Actions — it exists so that *if* Pages is set to "Deploy from a branch" at the root, visitors still
-get a landing page and a working link to `wingman.html` (which is committed) rather than a 404.
-
-So the worst case is a slightly reduced site, not a broken one.
+`index.html` at the root is **Vite's entry point for the app**, not a spare file. Replacing it (I
+tried, as a fallback for a misdiagnosed 404) makes `npm run build` compile the landing page instead
+of the app: `dist/` comes out with no JavaScript and `wingman.html` shrinks from ~336 KB to 4 KB.
+The build still "succeeds", which is what makes it easy to miss — check the size.
 
 ## Checking a deploy
 
