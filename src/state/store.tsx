@@ -232,12 +232,17 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'swipe': {
       const swipeId = uid('s_')
+      const wingmanId =
+        state.currentAccountId && state.currentAccountId !== action.profileId
+          ? state.currentAccountId
+          : undefined
       const swipe = {
         id: swipeId,
         profileId: action.profileId,
         targetId: action.targetId,
         direction: action.direction,
         byMatchmaker: action.byMatchmaker,
+        wingmanId,
         note: action.note,
         score: action.score,
         at: Date.now(),
@@ -248,14 +253,27 @@ function reducer(state: AppState, action: Action): AppState {
       const profileName = nameOf(state, action.profileId)
       const targetName = nameOf(state, action.targetId)
 
-      if (action.byMatchmaker) {
+      if (action.byMatchmaker && wingmanId) {
+        const wingmanName = nameOf(state, wingmanId)
+        // Written twice, because it reads differently from each side.
+        next = {
+          ...next,
+          notifications: notify(next, {
+            kind: 'matchmaker-swipe',
+            title: `${wingmanName} picked someone for you`,
+            body: `${wingmanName} liked ${targetName} on your behalf${action.note ? ` — “${action.note}”` : ''}.`,
+            profileId: action.profileId,
+            audienceId: action.profileId,
+          }),
+        }
         next = {
           ...next,
           notifications: notify(next, {
             kind: 'matchmaker-swipe',
             title: `Sent to ${profileName}`,
-            body: `You picked ${targetName} for ${profileName}${action.note ? ` — "${action.note}"` : ''}.`,
+            body: `You picked ${targetName} for ${profileName}${action.note ? ` — “${action.note}”` : ''}.`,
             profileId: action.profileId,
+            audienceId: wingmanId,
           }),
         }
       }
@@ -275,6 +293,7 @@ function reducer(state: AppState, action: Action): AppState {
             targetId: action.targetId,
             score: action.score,
             byMatchmaker: action.byMatchmaker,
+            wingmanId,
             note: action.note,
             revealAt: Date.now() + delayMs,
             willMatch: true,
@@ -502,6 +521,7 @@ type MatchSource = {
   targetId: string
   score: number
   byMatchmaker: boolean
+  wingmanId?: string
   note?: string
 }
 
@@ -651,25 +671,46 @@ function applyMatch(state: AppState, source: MatchSource): AppState {
     targetId: source.targetId,
     score: source.score,
     byMatchmaker: source.byMatchmaker,
+    wingmanId: source.wingmanId,
     note: source.note,
     at: Date.now(),
     archived: false,
   }
   const profile = state.people[source.profileId]
   const target = state.people[source.targetId]
-  const withMatch = { ...state, matches: [match, ...state.matches] }
-  return {
-    ...withMatch,
-    notifications: notify(withMatch, {
+  const wingman = source.wingmanId ? state.people[source.wingmanId] : undefined
+  let next: AppState = { ...state, matches: [match, ...state.matches] }
+
+  // The person it happened to hears about it first, and hears who to thank.
+  next = {
+    ...next,
+    notifications: notify(next, {
       kind: 'match',
-      title: `It's a match — ${profile?.name ?? 'Someone'} & ${target?.name ?? 'someone'}`,
-      body: source.byMatchmaker
-        ? `${target?.name ?? 'They'} liked the profile you picked for ${profile?.name ?? 'them'}. ${source.score}% compatible.`
+      title: `It's a match — you & ${target?.name ?? 'someone'}`,
+      body: wingman
+        ? `${wingman.name} put you two together, and ${target?.name ?? 'they'} said yes. ${source.score}% compatible.${source.note ? ` ${wingman.name} said: “${source.note}”` : ''}`
         : `You and ${target?.name ?? 'they'} both swiped right. ${source.score}% compatible.`,
       profileId: source.profileId,
       matchId: match.id,
+      audienceId: source.profileId,
     }),
   }
+
+  // And the wingman gets their own credit, in their own inbox.
+  if (wingman && source.wingmanId !== source.profileId) {
+    next = {
+      ...next,
+      notifications: notify(next, {
+        kind: 'match',
+        title: `You matched ${profile?.name ?? 'them'} with ${target?.name ?? 'someone'}`,
+        body: `${target?.name ?? 'They'} liked the profile you picked for ${profile?.name ?? 'them'}. ${source.score}% compatible — nice work.`,
+        profileId: source.profileId,
+        matchId: match.id,
+        audienceId: source.wingmanId,
+      }),
+    }
+  }
+  return next
 }
 
 interface Store {

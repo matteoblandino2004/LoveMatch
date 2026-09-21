@@ -9,6 +9,7 @@ import { buildDeck, eligibleCount } from '../lib/matchmaking'
 import { OCCASION_KINDS, whenLabel } from '../lib/occasions'
 import { PeopleSearch } from '../components/PeopleSearch'
 import { WingmanRequest } from '../components/WingmanRequest'
+import { FindFriend } from '../components/FindFriend'
 import { connectionsFor, searchPeople } from '../lib/connections'
 import {
   canSwipeFor, currentAccount, describeTie, grantBetween, isOnDevice, requestsAwaiting,
@@ -29,6 +30,7 @@ export function RosterScreen({ onAdd, onSwitchAccount, onEdit, onSwipeFor, onAdd
   const [open, setOpen] = useState<Person | null>(null)
   const [linking, setLinking] = useState<{ person: Person; kind: Tie } | null>(null)
   const [asking, setAsking] = useState<Person | null>(null)
+  const [finding, setFinding] = useState(false)
   const [query, setQuery] = useState('')
 
   const found = query.trim() ? searchPeople(state, query, { limit: 12 }) : []
@@ -261,14 +263,24 @@ export function RosterScreen({ onAdd, onSwitchAccount, onEdit, onSwipeFor, onAdd
         </div>
       )}
 
-      <div className="section-label">Add someone</div>
+      <div className="section-label">Be someone's wingman</div>
       <div className="stack">
+        <button className="row" onClick={() => setFinding(true)}>
+          <div style={{ fontSize: 22 }}>🔍</div>
+          <div className="row-main">
+            <div className="row-title">They're already on Wingman</div>
+            <div className="row-sub" style={{ whiteSpace: 'normal' }}>
+              Use the profile they wrote — their photos, their bio. Nothing to fill in. They just
+              approve you.
+            </div>
+          </div>
+        </button>
         <button className="row" onClick={() => onAdd('other')}>
           <div style={{ fontSize: 22 }}>➕</div>
           <div className="row-main">
-            <div className="row-title">Set someone up</div>
+            <div className="row-title">They're not on Wingman yet</div>
             <div className="row-sub" style={{ whiteSpace: 'normal' }}>
-              Make them an account. They approve you before you can swipe for them.
+              Make them an account yourself. They still have to approve you.
             </div>
           </div>
         </button>
@@ -330,6 +342,18 @@ export function RosterScreen({ onAdd, onSwitchAccount, onEdit, onSwipeFor, onAdd
       <Sheet open={!!linking} onClose={() => setLinking(null)}>
         {linking && (
           <PeopleSearch subject={linking.person} kind={linking.kind} onDone={() => setLinking(null)} />
+        )}
+      </Sheet>
+
+      <Sheet open={finding} onClose={() => setFinding(false)}>
+        {me && (
+          <FindFriend
+            me={me}
+            onPick={(person) => {
+              setFinding(false)
+              setAsking(person)
+            }}
+          />
         )}
       </Sheet>
 

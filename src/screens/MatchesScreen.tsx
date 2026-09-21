@@ -85,7 +85,7 @@ export function MatchesScreen({ onGoSwipe }: { onGoSwipe: () => void }) {
                         <span className="chip chip-hot tiny">{m.score}%</span>
                       </div>
                       <div className="row-sub">
-                        {m.byMatchmaker ? '★ You picked this one · ' : ''}
+                        {creditLine(state, m)}
                         {target.city} · {timeAgo(m.at)}
                       </div>
                     </div>
@@ -114,9 +114,17 @@ export function MatchesScreen({ onGoSwipe }: { onGoSwipe: () => void }) {
                 </div>
               </div>
               <p className="tiny muted" style={{ marginTop: 10 }}>
-                {openProfile.name} and {openTarget.name} matched {timeAgo(open.at)}
-                {open.byMatchmaker ? ' — from a profile you picked for them.' : '.'}
+                {openProfile.name} and {openTarget.name} matched {timeAgo(open.at)}.
               </p>
+              {open.wingmanId && state.people[open.wingmanId] && (
+                <div
+                  className="chip chip-amber"
+                  style={{ marginTop: 10, whiteSpace: 'normal' }}
+                >
+                  🪽 Set up by {state.people[open.wingmanId].name}
+                  {open.wingmanId === state.currentAccountId ? ' — that was you' : ''}
+                </div>
+              )}
               {open.note && (
                 <div className="note-quote" style={{ marginTop: 10 }}>
                   Your note: “{open.note}”
@@ -182,6 +190,16 @@ export function MatchesScreen({ onGoSwipe }: { onGoSwipe: () => void }) {
       </Sheet>
     </div>
   )
+}
+
+/** "🪽 Matteo set this up · " — who to thank, on the row. */
+function creditLine(state: ReturnType<typeof useApp>['state'], match: Match): string {
+  if (!match.wingmanId) return ''
+  const wingman = state.people[match.wingmanId]
+  if (!wingman) return ''
+  return match.wingmanId === state.currentAccountId
+    ? '🪽 You set this up · '
+    : `🪽 ${wingman.name} set this up · `
 }
 
 function buildIntro(

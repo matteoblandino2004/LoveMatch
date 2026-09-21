@@ -239,6 +239,8 @@ export interface Swipe {
   direction: SwipeDirection
   /** True when a matchmaker swiped instead of the person themselves. */
   byMatchmaker: boolean
+  /** Which account did the swiping, when it wasn't the person themselves. */
+  wingmanId?: string
   /** Optional note from the matchmaker: "you two would not stop talking". */
   note?: string
   score: number
@@ -252,6 +254,7 @@ export interface PendingLike {
   targetId: string
   score: number
   byMatchmaker: boolean
+  wingmanId?: string
   note?: string
   revealAt: number
   willMatch: boolean
@@ -263,6 +266,8 @@ export interface Match {
   targetId: string
   score: number
   byMatchmaker: boolean
+  /** Who played wingman on this one. Absent when they found it themselves. */
+  wingmanId?: string
   note?: string
   at: number
   archived: boolean

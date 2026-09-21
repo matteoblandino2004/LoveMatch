@@ -588,3 +588,92 @@ describe('accounts and permission', () => {
     expect(state.currentAccountId).toBe('me')
   })
 })
+
+describe('who gets the credit', () => {
+  const instantFor = (targetId: string, score: number) => idThatMatchesInstantly(targetId, score)
+
+  /** Sign in as `me`, with `owner` having approved them as wingman. */
+  function wingmanFor(ownerId: string) {
+    const me = makePerson({
+      id: 'me', name: 'Matteo', age: 32, gender: 'man',
+      managed: { kind: 'self', relationship: 'Me', pitch: '', consented: true },
+    })
+    let state = reducer(emptyState(), { type: 'account/create', person: me })
+    state = reducer(state, { type: 'profile/save', person: rosterProfile(ownerId) })
+    const grant = state.grants.find((g) => g.ownerId === ownerId)!
+    state = reducer(state, { type: 'grant/respond', id: grant.id, status: 'approved' })
+    return state
+  }
+
+  it('records which account did the swiping', () => {
+    let state = wingmanFor('r_maya')
+    state = reducer(state, {
+      type: 'swipe', profileId: 'r_maya', targetId: 'c_daniel', direction: 'like',
+      byMatchmaker: true, score: 80,
+    })
+    expect(state.swipes[0].wingmanId).toBe('me')
+  })
+
+  it('leaves the wingman blank when you swipe for yourself', () => {
+    const state = reducer(wingmanFor('r_maya'), {
+      type: 'swipe', profileId: 'me', targetId: 'c_isabel', direction: 'like',
+      byMatchmaker: false, score: 70,
+    })
+    expect(state.swipes[0].wingmanId).toBeUndefined()
+  })
+
+  it('tells the person who matched them, and credits the friend who did it', () => {
+    // The pairing has to land instantly for the notification to exist now.
+    const ownerId = instantFor('c_daniel', 88)
+    let state = wingmanFor(ownerId)
+    state = reducer(state, {
+      type: 'swipe', profileId: ownerId, targetId: 'c_daniel', direction: 'like',
+      byMatchmaker: true, note: 'Trust me on this one.', score: 88,
+    })
+
+    const match = state.matches[0]
+    expect(match.wingmanId).toBe('me')
+
+    // One notification for the person it happened to...
+    const theirs = state.notifications.find(
+      (n) => n.kind === 'match' && n.audienceId === ownerId,
+    )!
+    expect(theirs.title).toContain('Daniel')
+    expect(theirs.body).toContain('Matteo')
+    expect(theirs.body).toContain('Trust me on this one.')
+
+    // ...and one for the wingman, in their own inbox.
+    const mine = state.notifications.find((n) => n.kind === 'match' && n.audienceId === 'me')!
+    expect(mine.title).toContain('You matched')
+    expect(mine.matchId).toBe(match.id)
+  })
+
+  it('only notifies once when you match for yourself', () => {
+    const selfId = 'me'
+    let state = wingmanFor('r_maya')
+    // Swipe as yourself on someone who says yes straight away.
+    const target = 'c_isabel'
+    state = reducer(state, {
+      type: 'swipe', profileId: selfId, targetId: target, direction: 'like',
+      byMatchmaker: false, score: 88,
+    })
+    const matchNotes = state.notifications.filter((n) => n.kind === 'match')
+    expect(matchNotes.length).toBeLessThanOrEqual(1)
+    for (const note of matchNotes) expect(note.audienceId).toBe(selfId)
+  })
+
+  it('carries the wingman through a delayed match too', () => {
+    const ownerId = idThatMatchesLater('c_daniel', 88)
+    let state = wingmanFor(ownerId)
+    state = reducer(state, {
+      type: 'swipe', profileId: ownerId, targetId: 'c_daniel', direction: 'like',
+      byMatchmaker: true, score: 88,
+    })
+    expect(state.pending[0].wingmanId).toBe('me')
+
+    state = reducer(state, { type: 'pending/resolve', now: state.pending[0].revealAt })
+    expect(state.matches[0].wingmanId).toBe('me')
+    expect(state.notifications.some((n) => n.kind === 'match' && n.audienceId === 'me')).toBe(true)
+    expect(state.notifications.some((n) => n.kind === 'match' && n.audienceId === ownerId)).toBe(true)
+  })
+})

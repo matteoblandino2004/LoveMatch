@@ -14,6 +14,7 @@ import { Avatar } from '../components/Avatar'
 import { displayRelationship } from '../lib/people'
 import { canSwipeFor, currentAccount, swipeableFor } from '../lib/accounts'
 import { WingmanRequest } from '../components/WingmanRequest'
+import { FindFriend } from '../components/FindFriend'
 import { VIBES } from '../lib/occasions'
 
 const VIBE_LABEL = Object.fromEntries(
@@ -45,6 +46,7 @@ export function SwipeScreen({
   const [circleView, setCircleView] = useState<CircleView | null>(null)
   const [linking, setLinking] = useState<{ person: Person; kind: Tie } | null>(null)
   const [asking, setAsking] = useState<Person | null>(null)
+  const [finding, setFinding] = useState(false)
 
   const me = currentAccount(state)
   const roster = swipeableFor(state, state.currentAccountId)
@@ -202,7 +204,7 @@ export function SwipeScreen({
             </button>
           )
         })}
-        <button className="chip" style={{ cursor: 'pointer' }} onClick={onAddProfile}>
+        <button className="chip" style={{ cursor: 'pointer' }} onClick={() => setFinding(true)}>
           + Ask someone
         </button>
       </div>
@@ -444,6 +446,18 @@ export function SwipeScreen({
             onOpenProfile={(entry) => {
               setCircleView(null)
               setPreview(entry.person)
+            }}
+          />
+        )}
+      </Sheet>
+
+      <Sheet open={finding} onClose={() => setFinding(false)}>
+        {me && (
+          <FindFriend
+            me={me}
+            onPick={(person) => {
+              setFinding(false)
+              setAsking(person)
             }}
           />
         )}

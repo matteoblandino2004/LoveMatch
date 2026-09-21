@@ -13,7 +13,7 @@ import { Sheet } from './components/Sheet'
 import { Avatar } from './components/Avatar'
 import { Confetti } from './components/Confetti'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { blankPerson, displayRelationship } from './lib/people'
+import { blankPerson } from './lib/people'
 import { AccountSwitcher } from './components/AccountSwitcher'
 import { currentAccount, requestsAwaiting, swipeableFor } from './lib/accounts'
 import { haptic, initNative } from './lib/native'
@@ -324,8 +324,10 @@ function CelebrationOverlay({
           </>
         ) : (
           <p className="muted" style={{ marginTop: 8, maxWidth: 320 }}>
-            {celebration.kind === 'match' && celebration.match.byMatchmaker
-              ? `${target.name} liked the profile you picked for ${profile.name} (${displayRelationship(profile).toLowerCase()}). ${profile.name} has been notified.`
+            {celebration.kind === 'match' && celebration.match.wingmanId
+              ? celebration.match.wingmanId === state.currentAccountId
+                ? `${target.name} liked the profile you picked for ${profile.name}. ${profile.name} has been told it was you.`
+                : `${state.people[celebration.match.wingmanId]?.name ?? 'A friend'} put you two together.`
               : `You and ${target.name} both swiped right.`}
           </p>
         )}
