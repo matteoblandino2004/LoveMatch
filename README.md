@@ -202,6 +202,7 @@ docs/MAC-HANDOFF.md         the whole iOS release, start to finish, for when you
 docs/DOMAIN.md              pointing your own domain at the live site
 docs/IOS.md                 building, signing and running on a device
 docs/APP-STORE.md           submission runbook, review-guideline risks, draft listing copy
+docs/FRIDAY.md              the four-day plan if you're shipping this week
 docs/index.html             landing, support and privacy pages — GitHub Pages serves /docs
 docs/support.html           the support URL Apple requires
 docs/privacy.html           the privacy policy Apple requires a URL for
