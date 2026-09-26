@@ -5,7 +5,7 @@ import { blankPerson, defaultPreferences } from './people'
 import type { Person, WingmanGrant } from '../types'
 
 const KEY = 'wingman.state.v1'
-export const STATE_VERSION = 6
+export const STATE_VERSION = 7
 
 export function emptyState(): AppState {
   const people: Record<string, (typeof COMMUNITY)[number]> = {}
@@ -23,6 +23,7 @@ export function emptyState(): AppState {
     occasions: [],
     invites: [],
     connections: COMMUNITY_CONNECTIONS.map((l) => makeConnection(l.aId, l.bId, l.kind, l.label)),
+    suggestions: [],
     notifications: [],
     activeProfileId: null,
     version: STATE_VERSION,
@@ -98,6 +99,10 @@ function migrate(parsed: AppState): AppState | null {
   }
   if (state.version === 5) {
     state = migrateToAccounts(state)
+  }
+  if (state.version === 6) {
+    // v7 made a wingman's like a suggestion the person answers themselves.
+    state = { ...state, suggestions: [], version: 7 }
   }
   return state.version === STATE_VERSION ? state : null
 }

@@ -12,13 +12,20 @@ const ICONS: Record<NotificationKind, string> = {
   invite: '✉️',
   'invite-accepted': '🥂',
   'invite-declined': '🙇',
+  suggestion: '💡',
+  'suggestion-passed': '🙈',
   'wingman-request': '🪽',
   'wingman-approved': '✅',
   'wingman-declined': '🙅',
   tip: '💡',
 }
 
-export function NotificationsScreen({ onOpenMatches }: { onOpenMatches: () => void }) {
+export function NotificationsScreen({
+  onOpenMatches, onOpenPicks,
+}: {
+  onOpenMatches: () => void
+  onOpenPicks: () => void
+}) {
   const { state, markNotificationsRead, respondToRequest } = useApp()
 
   // Notifications addressed to somebody else's account aren't yours to read.
@@ -56,8 +63,16 @@ export function NotificationsScreen({ onOpenMatches }: { onOpenMatches: () => vo
               <button
                 key={n.id}
                 className={`row ${n.read ? '' : 'row-unread'}`}
-                onClick={n.kind === 'match' ? onOpenMatches : undefined}
-                style={{ cursor: n.kind === 'match' ? 'pointer' : 'default' }}
+                onClick={
+                  n.kind === 'match'
+                    ? onOpenMatches
+                    : n.kind === 'suggestion'
+                      ? onOpenPicks
+                      : undefined
+                }
+                style={{
+                  cursor: n.kind === 'match' || n.kind === 'suggestion' ? 'pointer' : 'default',
+                }}
               >
                 {profile ? (
                   <div style={{ position: 'relative' }}>

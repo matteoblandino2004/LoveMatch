@@ -69,6 +69,16 @@ down near the name for the full profile. Profiles with no photos still get their
 screen. Drag the card or use the buttons. ★ attaches a note from you — "you two would not stop
 talking" — which rides along with the like and shows up again if it becomes a match.
 
+**What your friends think — you still get the final say.** When you swipe right for a friend, you
+don't match them with anyone. They get a notification that reads *"Matteo thinks you should match
+with Daniel"*, and the pick lands in a **Picks** tab of their own, with your note attached. There
+they swipe on it themselves: right and it goes to the other person the way any like does, left and
+it's over — only you hear about it, so nobody is embarrassed. The tab carries a badge for how many
+picks are waiting, and answered ones stay in a short list underneath.
+
+That's the difference between this and handing your friend your phone. You can be their wingman all
+day without ever putting them in a conversation they didn't agree to.
+
 **Their type — the preferences you'd actually list.** Every profile carries what that person is
 looking for: an age range, a height range, hair colours, how far they'll travel. Those feed a "Their
 type" slice of the compatibility score, counted *both ways* — someone who fits your sister's type but
@@ -142,12 +152,15 @@ opens the breakdown: six weighted facets, each with a bar and a plain-English li
 It also raises flags worth knowing before you swipe ("they want different things about kids") and
 generates conversation starters from what the two actually have in common.
 
-**Notifications.** When a matchmaker picks someone, the person gets told. When it's mutual, both
-sides get the match — with the score, the matchmaker's note, and a ready-to-send intro text.
+**Notifications.** When a matchmaker picks someone, the person gets told — by name, and with the
+pick waiting for them to answer. Every notification is written for whoever is reading it: the
+wingman sees "Sent to Maya", Maya sees "Matteo thinks you should match with Daniel", and if she
+passes, only the wingman hears. When it's mutual, both sides get the match — with the score, the
+matchmaker's note, who set it up, and a ready-to-send intro text.
 
 ## How the score works
 
-`src/lib/compatibility.ts` is a pure function of two profiles. 100 points across six facets:
+`src/lib/compatibility.ts` is a pure function of two profiles. 100 points across seven facets:
 
 | Facet | Weight | What moves it |
 |---|---:|---|

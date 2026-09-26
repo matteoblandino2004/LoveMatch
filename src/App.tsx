@@ -7,6 +7,7 @@ import { RosterScreen } from './screens/RosterScreen'
 import { EventsScreen } from './screens/EventsScreen'
 import { MatchesScreen } from './screens/MatchesScreen'
 import { NotificationsScreen } from './screens/NotificationsScreen'
+import { PicksScreen } from './screens/PicksScreen'
 import { ProfileEditor } from './screens/ProfileEditor'
 import { OccasionEditor } from './screens/OccasionEditor'
 import { Sheet } from './components/Sheet'
@@ -16,16 +17,18 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { blankPerson } from './lib/people'
 import { AccountSwitcher } from './components/AccountSwitcher'
 import { currentAccount, requestsAwaiting, swipeableFor } from './lib/accounts'
+import { waitingCount } from './lib/suggestions'
 import { haptic, initNative } from './lib/native'
 import { scoreLabel } from './lib/compatibility'
 import { OCCASION_KINDS, blankOccasion, companionLine, whenLabel } from './lib/occasions'
 
-type Tab = 'swipe' | 'roster' | 'events' | 'matches' | 'activity'
+type Tab = 'swipe' | 'picks' | 'roster' | 'events' | 'matches' | 'activity'
 
 const TABS: { id: Tab; icon: string; label: string }[] = [
   { id: 'swipe', icon: '🔥', label: 'Swipe' },
+  { id: 'picks', icon: '💡', label: 'Picks' },
   { id: 'roster', icon: '🧑‍🤝‍🧑', label: 'People' },
-  { id: 'events', icon: '🗓️', label: 'Occasions' },
+  { id: 'events', icon: '🗓️', label: 'Events' },
   { id: 'matches', icon: '💘', label: 'Matches' },
   { id: 'activity', icon: '🔔', label: 'Activity' },
 ]
@@ -80,6 +83,7 @@ function Shell() {
   const me = currentAccount(state)
   const roster = swipeableFor(state, state.currentAccountId)
   const toAnswer = requestsAwaiting(state, state.currentAccountId).length
+  const picksWaiting = waitingCount(state, state.currentAccountId)
 
   function newOccasionFor(profileId?: string) {
     const target = profileId ?? state.activeProfileId ?? state.currentAccountId ?? undefined
@@ -123,6 +127,7 @@ function Shell() {
           onCreateOccasion={() => newOccasionFor()}
         />
       )}
+      {tab === 'picks' && <PicksScreen onGoSwipe={() => setTab('swipe')} />}
       {tab === 'roster' && (
         <RosterScreen
           onAdd={(kind) => setEditing(blankPerson(kind))}
@@ -149,7 +154,12 @@ function Shell() {
         />
       )}
       {tab === 'matches' && <MatchesScreen onGoSwipe={() => setTab('swipe')} />}
-      {tab === 'activity' && <NotificationsScreen onOpenMatches={() => setTab('matches')} />}
+      {tab === 'activity' && (
+        <NotificationsScreen
+          onOpenMatches={() => setTab('matches')}
+          onOpenPicks={() => setTab('picks')}
+        />
+      )}
 
       <nav className="nav">
         {TABS.map((t) => (
@@ -162,6 +172,7 @@ function Shell() {
             <span className="nav-icon">{t.icon}</span>
             {t.label}
             {t.id === 'activity' && unread > 0 && <span className="badge">{unread}</span>}
+            {t.id === 'picks' && picksWaiting > 0 && <span className="badge">{picksWaiting}</span>}
           </button>
         ))}
       </nav>

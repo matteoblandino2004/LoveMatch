@@ -6,6 +6,7 @@ import { decideReciprocal } from '../lib/matchmaking'
 import { decideInvite } from '../lib/occasions'
 import { connectionsFor, involves } from '../lib/connections'
 import { canSwipeFor, requestsAwaiting, requestsSent, swipeableFor } from '../lib/accounts'
+import { suggestionsFor, waitingCount } from '../lib/suggestions'
 import type { AppState, Occasion, Person } from '../types'
 
 const { reducer } = _internal
@@ -34,6 +35,13 @@ function idThatMatchesLater(targetId: string, score: number): string {
     if (willMatch && delayMs > 0) return id
   }
   throw new Error('no delayed-matching id found')
+}
+
+/** Answer the newest pick, the way the person being set up would. */
+function acceptLatestPick(state: AppState): AppState {
+  const pick = state.suggestions.find((s) => s.status === 'waiting')
+  if (!pick) return state
+  return reducer(state, { type: 'suggestion/respond', id: pick.id, accept: true })
 }
 
 /** A state where `you` are signed in and `profile` has approved you. */
@@ -86,6 +94,7 @@ describe('profiles', () => {
       type: 'swipe', profileId: id, targetId: 'c_daniel', direction: 'like',
       byMatchmaker: true, score: 90,
     })
+    state = acceptLatestPick(state)
     expect(state.matches).toHaveLength(1)
 
     state = reducer(state, { type: 'profile/remove', id })
@@ -112,17 +121,22 @@ describe('swiping', () => {
       type: 'swipe', profileId: 'r_a', targetId: 'c_daniel', direction: 'like',
       byMatchmaker: true, note: 'Trust me.', score: 80,
     })
-    const note = state.notifications.find((n) => n.kind === 'matchmaker-swipe')
-    expect(note?.body).toContain('Daniel')
-    expect(note?.body).toContain('Trust me.')
+    // The pick, and the note that came with it, land with the person it's for.
+    const theirs = state.notifications.find((n) => n.kind === 'suggestion')
+    expect(theirs?.title).toContain('Daniel')
+    expect(theirs?.body).toContain('Trust me.')
+    expect(theirs?.audienceId).toBe('r_a')
+    // The wingman just hears it was sent.
+    const mine = state.notifications.find((n) => n.kind === 'matchmaker-swipe')
+    expect(mine?.audienceId).toBe('me')
   })
 
   it('creates the match and the notification when the like is instant', () => {
     const id = idThatMatchesInstantly('c_daniel', 88)
-    const state = reducer(withProfile(rosterProfile(id)), {
+    const state = acceptLatestPick(reducer(withProfile(rosterProfile(id)), {
       type: 'swipe', profileId: id, targetId: 'c_daniel', direction: 'like',
       byMatchmaker: true, note: 'You two would not stop talking.', score: 88,
-    })
+    }))
     expect(state.matches).toHaveLength(1)
     expect(state.matches[0]).toMatchObject({ targetId: 'c_daniel', score: 88, byMatchmaker: true })
     expect(state.notifications[0].kind).toBe('match')
@@ -131,10 +145,10 @@ describe('swiping', () => {
 
   it('holds a delayed like until its reveal time passes', () => {
     const id = idThatMatchesLater('c_daniel', 88)
-    let state = reducer(withProfile(rosterProfile(id)), {
+    let state = acceptLatestPick(reducer(withProfile(rosterProfile(id)), {
       type: 'swipe', profileId: id, targetId: 'c_daniel', direction: 'like',
       byMatchmaker: false, score: 88,
-    })
+    }))
     expect(state.pending).toHaveLength(1)
     expect(state.matches).toHaveLength(0)
 
@@ -154,8 +168,8 @@ describe('swiping', () => {
       type: 'swipe' as const, profileId: id, targetId: 'c_daniel', direction: 'like' as const,
       byMatchmaker: false, score: 88,
     }
-    state = reducer(state, action)
-    state = reducer(state, action)
+    state = acceptLatestPick(reducer(state, action))
+    state = acceptLatestPick(reducer(state, action))
     expect(state.matches).toHaveLength(1)
   })
 
@@ -626,10 +640,10 @@ describe('who gets the credit', () => {
     // The pairing has to land instantly for the notification to exist now.
     const ownerId = instantFor('c_daniel', 88)
     let state = wingmanFor(ownerId)
-    state = reducer(state, {
+    state = acceptLatestPick(reducer(state, {
       type: 'swipe', profileId: ownerId, targetId: 'c_daniel', direction: 'like',
       byMatchmaker: true, note: 'Trust me on this one.', score: 88,
-    })
+    }))
 
     const match = state.matches[0]
     expect(match.wingmanId).toBe('me')
@@ -665,15 +679,137 @@ describe('who gets the credit', () => {
   it('carries the wingman through a delayed match too', () => {
     const ownerId = idThatMatchesLater('c_daniel', 88)
     let state = wingmanFor(ownerId)
-    state = reducer(state, {
+    state = acceptLatestPick(reducer(state, {
       type: 'swipe', profileId: ownerId, targetId: 'c_daniel', direction: 'like',
       byMatchmaker: true, score: 88,
-    })
+    }))
     expect(state.pending[0].wingmanId).toBe('me')
 
     state = reducer(state, { type: 'pending/resolve', now: state.pending[0].revealAt })
     expect(state.matches[0].wingmanId).toBe('me')
     expect(state.notifications.some((n) => n.kind === 'match' && n.audienceId === 'me')).toBe(true)
     expect(state.notifications.some((n) => n.kind === 'match' && n.audienceId === ownerId)).toBe(true)
+  })
+})
+
+describe('what your friends think', () => {
+  /** Signed in as Matteo, with `ownerId` having approved him as wingman. */
+  function wingmanFor(ownerId: string): AppState {
+    const me = makePerson({
+      id: 'me', name: 'Matteo', age: 32, gender: 'man',
+      managed: { kind: 'self', relationship: 'Me', pitch: '', consented: true },
+    })
+    let state = reducer(emptyState(), { type: 'account/create', person: me })
+    state = reducer(state, { type: 'profile/save', person: rosterProfile(ownerId) })
+    const grant = state.grants.find((g) => g.ownerId === ownerId)!
+    return reducer(state, { type: 'grant/respond', id: grant.id, status: 'approved' })
+  }
+
+  const pickFor = (state: AppState, ownerId: string, note?: string) =>
+    reducer(state, {
+      type: 'swipe', profileId: ownerId, targetId: 'c_daniel', direction: 'like',
+      byMatchmaker: true, note, score: 88,
+    })
+
+  it('turns a friend swiping for you into a pick you have to answer', () => {
+    const state = pickFor(wingmanFor('r_maya'), 'r_maya', 'You two would not stop talking.')
+
+    expect(state.suggestions).toHaveLength(1)
+    expect(state.suggestions[0]).toMatchObject({
+      profileId: 'r_maya', wingmanId: 'me', targetId: 'c_daniel', status: 'waiting',
+    })
+    // Nothing has been put to the candidate yet.
+    expect(state.matches).toHaveLength(0)
+    expect(state.pending).toHaveLength(0)
+  })
+
+  it('tells the person who thinks it, in those words', () => {
+    const state = pickFor(wingmanFor('r_maya'), 'r_maya', 'Trust me.')
+    const note = state.notifications.find((n) => n.kind === 'suggestion')!
+    expect(note.title).toBe('Matteo thinks you should match with Daniel')
+    expect(note.body).toContain('Trust me.')
+    expect(note.audienceId).toBe('r_maya')
+    expect(note.suggestionId).toBe(state.suggestions[0].id)
+  })
+
+  it('only shows a pick to the person it is for', () => {
+    const state = pickFor(wingmanFor('r_maya'), 'r_maya')
+    expect(suggestionsFor(state, 'r_maya').map((c) => c.target.id)).toEqual(['c_daniel'])
+    expect(suggestionsFor(state, 'me')).toHaveLength(0)
+    expect(waitingCount(state, 'r_maya')).toBe(1)
+  })
+
+  it('puts it to the candidate only once they say yes', () => {
+    const ownerId = idThatMatchesInstantly('c_daniel', 88)
+    let state = pickFor(wingmanFor(ownerId), ownerId)
+    expect(state.matches).toHaveLength(0)
+
+    state = reducer(state, {
+      type: 'suggestion/respond', id: state.suggestions[0].id, accept: true,
+    })
+    expect(state.suggestions[0].status).toBe('accepted')
+    expect(state.matches).toHaveLength(1)
+    // The friend who suggested it still gets the credit.
+    expect(state.matches[0].wingmanId).toBe('me')
+  })
+
+  it('goes no further when they pass, and tells the friend', () => {
+    const ownerId = idThatMatchesInstantly('c_daniel', 88)
+    let state = pickFor(wingmanFor(ownerId), ownerId)
+    state = reducer(state, {
+      type: 'suggestion/respond', id: state.suggestions[0].id, accept: false,
+    })
+
+    expect(state.suggestions[0].status).toBe('passed')
+    expect(state.matches).toHaveLength(0)
+    expect(state.pending).toHaveLength(0)
+    const told = state.notifications.find((n) => n.kind === 'suggestion-passed')!
+    expect(told.audienceId).toBe('me')
+    expect(told.title).toContain('passed on Daniel')
+  })
+
+  it('cannot be answered twice', () => {
+    const ownerId = idThatMatchesInstantly('c_daniel', 88)
+    let state = pickFor(wingmanFor(ownerId), ownerId)
+    const id = state.suggestions[0].id
+    state = reducer(state, { type: 'suggestion/respond', id, accept: true })
+    const after = reducer(state, { type: 'suggestion/respond', id, accept: false })
+    expect(after.suggestions[0].status).toBe('accepted')
+    expect(after.matches).toHaveLength(1)
+  })
+
+  it('leaves your own swiping alone — no middleman', () => {
+    const state = reducer(wingmanFor('r_maya'), {
+      type: 'swipe', profileId: 'me', targetId: 'c_isabel', direction: 'like',
+      byMatchmaker: false, score: 88,
+    })
+    expect(state.suggestions).toHaveLength(0)
+  })
+
+  it('does not raise a pick for a pass', () => {
+    const state = reducer(wingmanFor('r_maya'), {
+      type: 'swipe', profileId: 'r_maya', targetId: 'c_daniel', direction: 'pass',
+      byMatchmaker: true, score: 40,
+    })
+    expect(state.suggestions).toHaveLength(0)
+  })
+
+  it('still works when the candidate takes their time', () => {
+    const ownerId = idThatMatchesLater('c_daniel', 88)
+    let state = pickFor(wingmanFor(ownerId), ownerId)
+    state = reducer(state, {
+      type: 'suggestion/respond', id: state.suggestions[0].id, accept: true,
+    })
+    expect(state.pending).toHaveLength(1)
+    expect(state.pending[0].wingmanId).toBe('me')
+
+    state = reducer(state, { type: 'pending/resolve', now: state.pending[0].revealAt })
+    expect(state.matches[0].wingmanId).toBe('me')
+  })
+
+  it('takes picks with a deleted profile', () => {
+    let state = pickFor(wingmanFor('r_maya'), 'r_maya')
+    state = reducer(state, { type: 'profile/remove', id: 'r_maya' })
+    expect(state.suggestions).toHaveLength(0)
   })
 })

@@ -100,8 +100,9 @@ Back in App Store Connect → your app → **TestFlight** tab. The build shows "
 Paste this into "What to Test":
 
 > Tap "I'm 18 or older", then "Just show me — load a sample family" to fill the app with example
-> profiles. Worth trying: tap a card for the compatibility breakdown; Occasions → "Find someone for
-> this"; the avatar top-right to switch accounts and approve a wingman request; add a photo.
+> profiles. Worth trying: tap a card for the compatibility breakdown; swipe right for Maya, then
+> switch into her account and answer it in the Picks tab; Events → "Find someone for this"; the
+> avatar top-right to switch accounts and approve a wingman request; add a photo.
 > Everything is stored on your phone — Settings → Reset everything wipes it.
 
 ## 8. Only if you're going for the public App Store

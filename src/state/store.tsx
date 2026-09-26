@@ -4,7 +4,7 @@ import {
 } from 'react'
 import type {
   AppNotification, AppState, Connection, GrantStatus, Invite, InviteStatus, Match, Occasion,
-  Person, SwipeDirection, Tie, WingmanGrant,
+  Person, Suggestion, SwipeDirection, Tie, WingmanGrant,
 } from '../types'
 import { clearState, emptyState, loadState, saveState } from '../lib/storage'
 import { clearAllPhotos, deletePhotos } from '../lib/photos'
@@ -35,6 +35,7 @@ type Action =
       score: number
     }
   | { type: 'swipe/undo'; profileId: string }
+  | { type: 'suggestion/respond'; id: string; accept: boolean }
   | {
       /** Record a swipe with no like semantics — used when an invitation is the action. */
       type: 'swipe/record'
@@ -220,6 +221,9 @@ function reducer(state: AppState, action: Action): AppState {
         occasions: state.occasions.filter((o) => o.profileId !== action.id),
         invites: state.invites.filter((i) => i.profileId !== action.id),
         connections: state.connections.filter((c) => !involves(c, action.id)),
+        suggestions: state.suggestions.filter(
+          (s) => s.profileId !== action.id && s.wingmanId !== action.id,
+        ),
         notifications: state.notifications.filter((n) => n.profileId !== action.id),
       }
     }
@@ -253,53 +257,92 @@ function reducer(state: AppState, action: Action): AppState {
       const profileName = nameOf(state, action.profileId)
       const targetName = nameOf(state, action.targetId)
 
-      if (action.byMatchmaker && wingmanId) {
+      // A friend swiping for you doesn't match you with anyone. It puts them
+      // in front of you, and you decide.
+      if (wingmanId) {
         const wingmanName = nameOf(state, wingmanId)
-        // Written twice, because it reads differently from each side.
+        const suggestion: Suggestion = {
+          id: uid('sg_'),
+          profileId: action.profileId,
+          wingmanId,
+          targetId: action.targetId,
+          score: action.score,
+          note: action.note,
+          status: 'waiting',
+          at: Date.now(),
+        }
+        next = { ...next, suggestions: [suggestion, ...next.suggestions] }
         next = {
           ...next,
           notifications: notify(next, {
-            kind: 'matchmaker-swipe',
-            title: `${wingmanName} picked someone for you`,
-            body: `${wingmanName} liked ${targetName} on your behalf${action.note ? ` — “${action.note}”` : ''}.`,
+            kind: 'suggestion',
+            title: `${wingmanName} thinks you should match with ${targetName}`,
+            body: action.note
+              ? `“${action.note}” — have a look and decide for yourself.`
+              : `${wingmanName} sent you ${targetName}. Have a look and decide for yourself.`,
             profileId: action.profileId,
             audienceId: action.profileId,
+            suggestionId: suggestion.id,
           }),
         }
-        next = {
+        return {
           ...next,
           notifications: notify(next, {
             kind: 'matchmaker-swipe',
             title: `Sent to ${profileName}`,
-            body: `You picked ${targetName} for ${profileName}${action.note ? ` — “${action.note}”` : ''}.`,
+            body: `${profileName} decides whether to match with ${targetName}. You'll hear either way.`,
             profileId: action.profileId,
             audienceId: wingmanId,
           }),
         }
       }
 
-      const { willMatch, delayMs } = decideReciprocal(action.profileId, action.targetId, action.score)
-      if (!willMatch) return next
+      return askTheOtherSide(next, {
+        swipeId,
+        profileId: action.profileId,
+        targetId: action.targetId,
+        score: action.score,
+        byMatchmaker: action.byMatchmaker,
+        note: action.note,
+      })
+    }
 
-      if (delayMs === 0) return applyMatch(next, swipe)
+    case 'suggestion/respond': {
+      const suggestion = state.suggestions.find((s) => s.id === action.id)
+      if (!suggestion || suggestion.status !== 'waiting') return state
 
-      return {
-        ...next,
-        pending: [
-          ...next.pending,
-          {
-            swipeId,
-            profileId: action.profileId,
-            targetId: action.targetId,
-            score: action.score,
-            byMatchmaker: action.byMatchmaker,
-            wingmanId,
-            note: action.note,
-            revealAt: Date.now() + delayMs,
-            willMatch: true,
-          },
-        ],
+      const status = action.accept ? 'accepted' : 'passed'
+      const suggestions = state.suggestions.map((s) =>
+        s.id === action.id ? { ...s, status: status as Suggestion['status'], respondedAt: Date.now() } : s,
+      )
+      let next: AppState = { ...state, suggestions }
+
+      const targetName = nameOf(next, suggestion.targetId)
+      const profileName = nameOf(next, suggestion.profileId)
+
+      if (!action.accept) {
+        return {
+          ...next,
+          notifications: notify(next, {
+            kind: 'suggestion-passed',
+            title: `${profileName} passed on ${targetName}`,
+            body: `Not the one. Keep them coming.`,
+            profileId: suggestion.profileId,
+            audienceId: suggestion.wingmanId,
+          }),
+        }
       }
+
+      // They said yes, so now it's the candidate's turn.
+      return askTheOtherSide(next, {
+        swipeId: suggestion.id,
+        profileId: suggestion.profileId,
+        targetId: suggestion.targetId,
+        score: suggestion.score,
+        byMatchmaker: true,
+        wingmanId: suggestion.wingmanId,
+        note: suggestion.note,
+      })
     }
 
     case 'swipe/record':
@@ -633,6 +676,45 @@ function applyGrantAnswer(
   }
 }
 
+interface LikeSource {
+  swipeId: string
+  profileId: string
+  targetId: string
+  score: number
+  byMatchmaker: boolean
+  wingmanId?: string
+  note?: string
+}
+
+/**
+ * Put the like to the other person. They answer straight away or in their own
+ * time, exactly as before — this is the half that happens once both sides of
+ * the wingman arrangement have agreed.
+ */
+function askTheOtherSide(state: AppState, like: LikeSource): AppState {
+  const { willMatch, delayMs } = decideReciprocal(like.profileId, like.targetId, like.score)
+  if (!willMatch) return state
+  if (delayMs === 0) return applyMatch(state, like)
+
+  return {
+    ...state,
+    pending: [
+      ...state.pending,
+      {
+        swipeId: like.swipeId,
+        profileId: like.profileId,
+        targetId: like.targetId,
+        score: like.score,
+        byMatchmaker: like.byMatchmaker,
+        wingmanId: like.wingmanId,
+        note: like.note,
+        revealAt: Date.now() + delayMs,
+        willMatch: true,
+      },
+    ],
+  }
+}
+
 const WITHDRAWN = 'Withdrawn — the spot was already taken.'
 
 /** Close out every invitation still waiting on an occasion that just filled. */
@@ -733,6 +815,7 @@ interface Store {
   }) => void
   undoSwipe: (profileId: string) => void
   recordSwipe: (args: { profileId: string; targetId: string; score: number }) => void
+  respondToSuggestion: (id: string, accept: boolean) => void
   addConnection: (args: { aId: string; bId: string; kind: Tie; label: string }) => void
   removeConnection: (id: string) => void
   saveOccasion: (occasion: Occasion) => void
@@ -794,6 +877,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       swipe: (args) => dispatch({ type: 'swipe', ...args }),
       undoSwipe: (profileId) => dispatch({ type: 'swipe/undo', profileId }),
       recordSwipe: (args) => dispatch({ type: 'swipe/record', ...args }),
+      respondToSuggestion: (id, accept) => dispatch({ type: 'suggestion/respond', id, accept }),
       addConnection: (args) => dispatch({ type: 'connection/add', ...args }),
       removeConnection: (id) => dispatch({ type: 'connection/remove', id }),
       saveOccasion: (occasion) => dispatch({ type: 'occasion/save', occasion }),

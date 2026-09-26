@@ -229,6 +229,27 @@ export interface Connection {
   createdAt: number
 }
 
+export type SuggestionStatus = 'waiting' | 'accepted' | 'passed'
+
+/**
+ * A wingman's pick, waiting on the person it's for. A friend swiping right
+ * doesn't match you with anyone — it puts them in front of you, and you decide.
+ */
+export interface Suggestion {
+  id: string
+  /** Whose inbox this lands in. */
+  profileId: string
+  /** Who thinks they'd suit you. */
+  wingmanId: string
+  targetId: string
+  score: number
+  /** What the wingman said when they sent it. */
+  note?: string
+  status: SuggestionStatus
+  at: number
+  respondedAt?: number
+}
+
 export type SwipeDirection = 'like' | 'pass'
 
 export interface Swipe {
@@ -275,6 +296,8 @@ export interface Match {
 
 export type NotificationKind =
   | 'match'
+  | 'suggestion'
+  | 'suggestion-passed'
   | 'wingman-request'
   | 'wingman-approved'
   | 'wingman-declined'
@@ -298,6 +321,7 @@ export interface AppNotification {
   occasionId?: string
   inviteId?: string
   grantId?: string
+  suggestionId?: string
   /** Which account's feed this belongs in. Undefined means everyone's. */
   audienceId?: string
 }
@@ -320,6 +344,8 @@ export interface AppState {
   invites: Invite[]
   /** Everyone's family and friends, as links between two people. */
   connections: Connection[]
+  /** Picks your friends have sent you, waiting on your answer. */
+  suggestions: Suggestion[]
   notifications: AppNotification[]
   /** Whose deck you're swiping right now — yourself, or someone who approved you. */
   activeProfileId: string | null

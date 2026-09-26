@@ -183,9 +183,10 @@ App Store Connect asks what testers should try. Paste this:
 > Wingman is a matchmaking app you use for other people. Tap "I'm 18 or older", then
 > "Just show me — load a sample family" to fill the app with example profiles.
 >
-> Worth trying: swipe a few cards and tap one to see the compatibility breakdown; open Occasions
-> and tap "Find someone for this" on the double date; tap the avatar top-right to switch into
-> someone else's account and approve a wingman request; add a photo to a profile.
+> Worth trying: swipe a few cards and tap one to see the compatibility breakdown; pick someone for
+> Maya, then tap the avatar top-right, switch into Maya's account and answer that pick in the Picks
+> tab; open Events and tap "Find someone for this" on the double date; approve a wingman request;
+> add a photo to a profile.
 >
 > Everything is stored on your phone — no account, no server. Settings → Reset everything wipes it.
 

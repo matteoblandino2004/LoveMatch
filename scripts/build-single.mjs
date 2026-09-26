@@ -3,11 +3,32 @@
  * Opening a page over file:// blocks module scripts and asset fetches, so the
  * script and stylesheet have to live inside the document itself.
  */
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, statSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 const dir = 'dist-single'
 const out = 'wingman.html'
+
+// This reads `dist-single/`, which only `vite build --mode single` writes — not
+// the ordinary `npm run build`. Run on its own it will happily inline a build
+// from last week and report success, so check the age before trusting it.
+if (!existsSync(join(dir, 'app.js'))) {
+  throw new Error(`no ${dir}/app.js — run \`npm run build:single\`, not this script on its own.`)
+}
+const builtAt = statSync(join(dir, 'app.js')).mtimeMs
+const newestSource = (function newest(from) {
+  let latest = 0
+  for (const entry of readdirSync(from, { withFileTypes: true })) {
+    const path = join(from, entry.name)
+    latest = Math.max(latest, entry.isDirectory() ? newest(path) : statSync(path).mtimeMs)
+  }
+  return latest
+})('src')
+if (newestSource > builtAt) {
+  throw new Error(
+    `${dir}/app.js is older than src/ — it would inline a stale app. Run \`npm run build:single\`.`,
+  )
+}
 
 const html = readFileSync(join(dir, 'index.html'), 'utf8')
 const js = readFileSync(join(dir, 'app.js'), 'utf8')

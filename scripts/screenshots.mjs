@@ -40,7 +40,7 @@ for (let i = 0; i < 6; i++) {
 if (await page.isVisible('.celebrate')) { await page.click('.celebrate .btn-ghost'); await page.waitForTimeout(400) }
 
 // Occasions
-await page.click('nav button:has-text("Occasions")')
+await page.click('nav button:has-text("Events")')
 await page.waitForTimeout(700)
 await shot('4-occasions')
 
@@ -55,6 +55,21 @@ await page.waitForTimeout(400)
 await page.click('nav button:has-text("People")')
 await page.waitForTimeout(700)
 await shot('6-people')
+
+// What your friends think: pick someone for Maya, then answer as Maya.
+await page.click('nav button:has-text("Swipe")')
+await page.waitForTimeout(500)
+await page.click('button.chip:has-text("Maya")')
+await page.waitForTimeout(500)
+await page.click('button[aria-label="Like"]')
+await page.waitForTimeout(700)
+await page.click('.topbar button >> nth=0')
+await page.waitForTimeout(400)
+await page.click('.sheet .row:has-text("Maya")')
+await page.waitForTimeout(600)
+await page.click('nav button:has-text("Picks")')
+await page.waitForTimeout(800)
+await shot('7-picks')
 
 await browser.close()
 console.log('done')
