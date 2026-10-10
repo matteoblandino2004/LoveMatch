@@ -119,14 +119,18 @@ GitHub Pages otherwise hides files it mistakes for drafts.
 
 ## Draft metadata
 
-**Name:** Wingman
+**Name:** `Wingman: Set Your Friends Up` (28) — plain "Wingman" was already taken on the App Store.
+The home screen name is separate and stays `Wingman` (`CFBundleDisplayName` in `Info.plist`).
 
-**Subtitle (30 char max):** `Set your friends up` (19)
+**Subtitle (30 char max):** `Matchmaking for your people` (27)
 
 **Category:** Entertainment (or Social Networking if you go the dating-app route)
 
 **Keywords (100 char max):**
-`matchmaker,set up friends,wingman,double date,dating,swipe,matchmaking,couples,wedding date,single`
+`matchmaker,double date,dating,swipe,matchmaking,couples,wedding date,single,blind date,introduce` (96)
+
+Apple already indexes every word in the app name, so "wingman", "set", "friends" and "up" are
+deliberately left out — repeating them here would waste the budget.
 
 **Promotional text (170 max):**
 
