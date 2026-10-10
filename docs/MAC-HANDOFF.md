@@ -61,6 +61,12 @@ That builds the web app, copies it into the native project, and opens Xcode. Fir
 to install extra components — say yes, and wait for the package resolution spinner in the top bar
 to finish.
 
+> **No CocoaPods.** This project uses Swift Package Manager, so there is no `pod install` step —
+> ignore any Capacitor guide that tells you to run one. The flip side: the Swift package points at
+> `node_modules/@capacitor/*` by relative path, so `npm install` has to have run first and the
+> folder has to stay where it is. Moving or renaming the project folder after this breaks the
+> build until you re-run `npm install`.
+
 **Sign in once:** Xcode menu → **Settings → Accounts → + → Apple ID** → sign in.
 
 **Set the team:** blue **App** icon at the top of the left sidebar → TARGETS **App** →
@@ -117,6 +123,8 @@ in (screenshots, description, keywords, review notes, privacy and support URLs) 
 |---|---|
 | **Product → Archive** is greyed out | Destination isn't "Any iOS Device (arm64)" |
 | **Team** dropdown is empty | Apple ID not added in Xcode → Settings → Accounts |
-| "No such module 'Capacitor'" | Packages not resolved: File → Packages → Resolve Package Versions, then ⇧⌘K |
+| "No such module 'Capacitor'" | Either `npm install` hasn't run, or packages aren't resolved: File → Packages → Resolve Package Versions, then ⇧⌘K |
+| "Missing package product" after moving the folder | The Swift package uses relative paths into `node_modules` — re-run `npm install`, then Resolve Package Versions |
+| Signing error: "No profiles for com.matteoblandino.wingman" | The App ID isn't registered yet — do step 2 |
 | White screen when the app launches | `dist/` wasn't copied — run `npm run ios:sync` |
 | Changes don't appear | The app runs the bundled build, not the dev server — `npm run ios:sync` again |

@@ -88,7 +88,7 @@ Every upload needs a new build number: Xcode → General → Build (1, 2, 3…).
 | Item | Where |
 |---|---|
 | App icon, 1024px, no alpha | `ios/App/App/Assets.xcassets/AppIcon.appiconset` |
-| Screenshots, 6.7" (1290×2796) | `appstore/screenshots/` — six of them, regenerate with `npm run screenshots` |
+| Screenshots, 6.7" (1290×2796) | `appstore/screenshots/` — seven of them, regenerate with `npm run screenshots` |
 | Privacy policy page | `docs/privacy.html` — host it, see below |
 | Support page | `docs/support.html` — same host |
 | Landing page | `docs/index.html` |
@@ -102,15 +102,18 @@ Every upload needs a new build number: Xcode → General → Build (1, 2, 3…).
 ### Hosting the privacy and support pages
 
 Apple requires a live URL for both, and App Store Connect will not let you submit without them.
-Free, five minutes: GitHub repo → Settings → Pages → Source: *Deploy from a branch*, branch
-`main`, folder `/docs`. A minute later you have:
+**This is already done** — `.github/workflows/pages.yml` builds `site/` and deploys it on every
+push, so these three URLs are live now and need nothing from you:
 
-- Privacy Policy URL — `https://<your-username>.github.io/LoveMatch/privacy.html`
-- Support URL — `https://<your-username>.github.io/LoveMatch/support.html`
-- Marketing URL (optional) — `https://<your-username>.github.io/LoveMatch/`
+- Privacy Policy URL — `https://matteoblandino2004.github.io/LoveMatch/privacy.html`
+- Support URL — `https://matteoblandino2004.github.io/LoveMatch/support.html`
+- Marketing URL (optional) — `https://matteoblandino2004.github.io/LoveMatch/`
 
-All three pages are written, styled and cross-linked. `docs/.nojekyll` is there because GitHub
-Pages otherwise hides files it mistakes for drafts.
+Don't set Pages to *Deploy from a branch* in Settings — that would replace the workflow's output
+with the raw repo and break these URLs. The Source must stay **GitHub Actions**.
+
+All three pages are written, styled and cross-linked. `.nojekyll` ships in the built site because
+GitHub Pages otherwise hides files it mistakes for drafts.
 
 ---
 
