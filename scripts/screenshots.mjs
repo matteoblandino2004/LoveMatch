@@ -1,17 +1,31 @@
 /**
- * Drive the real app and capture App Store screenshots at 1290x2796.
+ * Drive the real app and capture App Store screenshots.
  * Needs a preview server: `npm run build && npm run preview` in another shell.
+ *
+ * App Store Connect renames its screenshot slots every year or two and rejects
+ * anything off by a pixel, so the size is a parameter rather than a constant:
+ *
+ *   SHOT_W=1320 SHOT_H=2868 npm run screenshots
+ *
+ * Defaults to 1320x2868. Both numbers must divide by 3 — the device scale
+ * factor — or the capture comes out a pixel short and Apple refuses it.
  */
 import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 
-// 6.7" iPhone: 1290 x 2796 — the size App Store Connect asks for.
-const OUT = 'appstore/screenshots'
+const W = Number(process.env.SHOT_W ?? 1320)
+const H = Number(process.env.SHOT_H ?? 2868)
+const SCALE = 3
+if (W % SCALE || H % SCALE) {
+  throw new Error(`${W}x${H} does not divide by ${SCALE} — pick a size that does.`)
+}
+const OUT = process.env.SHOT_OUT ?? `appstore/screenshots-${W}x${H}`
 mkdirSync(OUT, { recursive: true })
+console.log(`capturing ${W}x${H} into ${OUT}/`)
 const browser = await chromium.launch()
 const page = await browser.newPage({
-  viewport: { width: 430, height: 932 },
-  deviceScaleFactor: 3,
+  viewport: { width: W / SCALE, height: H / SCALE },
+  deviceScaleFactor: SCALE,
 })
 const shot = (name) => page.screenshot({ path: `${OUT}/${name}.png` })
 
