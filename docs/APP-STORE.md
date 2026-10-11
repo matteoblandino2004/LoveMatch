@@ -119,7 +119,7 @@ GitHub Pages otherwise hides files it mistakes for drafts.
 
 ## Draft metadata
 
-**Name:** `Wingman: Set Your Friends Up` (28) — plain "Wingman" was already taken on the App Store.
+**Name:** `Wingman: Set Friends Up` (23) — plain "Wingman" was already taken on the App Store.
 The home screen name is separate and stays `Wingman` (`CFBundleDisplayName` in `Info.plist`).
 
 **Subtitle (30 char max):** `Matchmaking for your people` (27)
@@ -144,6 +144,12 @@ deliberately left out — repeating them here would waste the budget.
 > You get your own account and swipe for yourself. But you can also ask a friend to let you swipe
 > for them — and when they approve you, they appear in your dropdown. Switch between your deck and
 > theirs with one tap. They can take that permission back whenever they like.
+>
+> THEY GET THE FINAL SAY
+> Swiping right for a friend doesn't match them with anyone. They get a notification — "Alex thinks
+> you should match with Daniel" — and the pick lands in their own Picks tab, where they swipe on it
+> themselves. Right and it goes out like any other like. Left and it's over, and only you hear
+> about it.
 >
 > WHAT MAKES A MATCH
 > Every card carries a compatibility score out of 100, and tapping it shows the working: shared
