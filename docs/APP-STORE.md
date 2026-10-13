@@ -208,3 +208,124 @@ App Store Connect asks what testers should try. Paste this:
 Version bumps are Xcode → General → Version (`1.0.1`) and Build. Re-archive, re-upload, submit for
 review. Web-only changes still need a new binary — the JavaScript is bundled into the app, not
 fetched.
+
+---
+
+## Responding to a Guideline 2.1 information request
+
+Apple sends this to developers with no review history. It is a questionnaire, not a defect —
+**no new build is required**, you reply in Resolution Center and they re-review.
+
+Paste the answers below into both the Resolution Center reply *and* the Notes field of App Review
+Information, which is what they ask for. Every claim here was checked against the source: the app
+makes no requests to any server (the two `fetch()` calls in `nativePhotos.ts` read the local file
+URI the iOS picker returns), there is no analytics of any kind, and `geo.ts` is a static table of
+city coordinates rather than a lookup service.
+
+### 2. Purpose and target audience
+
+> Wingman is a matchmaking app you use on behalf of someone else.
+>
+> The problem it solves: the person best placed to judge who you'd get along with is usually not
+> you — it's your sister, your roommate, your closest friend. Dating apps give that person no role.
+> Wingman gives them one.
+>
+> You build a profile for someone you want to set up, and you can only swipe for them once they
+> approve you. When you swipe right on their behalf, it does not match them with anyone — they get
+> a notification naming you and the person you chose, and the pick lands in their own "Picks" tab
+> where they swipe on it themselves. The decision stays with the person being set up.
+>
+> The app also scores compatibility out of 100 and shows its working, and lets you aim a search at
+> a specific occasion — a wedding you need a plus-one for, a double date.
+>
+> Target audience: adults, 17 and over, who want to set up people they know. The App Store category
+> is Entertainment rather than Social Networking because the profiles are fictional characters
+> bundled with the app, not a live dating pool.
+
+### 3. Setup and access instructions
+
+> There are no accounts and no credentials — nothing to sign into, and no demo account is needed.
+>
+> On first launch: tap "I'm 18 or older", enter any first name, then tap
+> **"Just show me — load a sample family"** to populate the app with example profiles.
+>
+> - **Swipe** (first tab): drag a card or use the ✕ / ♥ buttons. Tap a card for the full profile
+>   and the compatibility breakdown. The row of faces at the top switches whose deck you are in.
+> - **Picks**: swipe right for someone else, then tap the avatar at the top right, switch into that
+>   person's account, and their pick is waiting in this tab for them to answer.
+> - **People**: every profile's family and friends, and search.
+> - **Events**: tap "Find someone for this" on an occasion to re-score the deck for that night.
+> - **Matches** and **Activity**: results and notifications.
+> - **Settings → Reset everything** erases all data from the device.
+
+### 4. External services, tools and platforms
+
+> None. The app has no backend.
+>
+> - No server, no API, no database off the device
+> - No authentication service — there are no accounts
+> - No analytics, telemetry, crash reporting or advertising SDK
+> - No payment processor and no in-app purchases
+> - No AI or machine-learning service; the compatibility score is arithmetic over the two profiles
+>   in `src/lib/compatibility.ts`
+> - No data provider; distances come from a static table of city coordinates compiled into the app
+>
+> The only platform frameworks used are Apple's own, reached through Capacitor: the photo library
+> and camera pickers (`NSPhotoLibraryUsageDescription`, `NSCameraUsageDescription`), haptics,
+> keyboard and status bar.
+>
+> All data — profiles, photos, swipes, matches — is stored locally in `localStorage` and IndexedDB
+> on the device. **This can be verified by running the app in airplane mode: every feature works.**
+
+### 5. Regional differences
+
+> There are none. The app ships a single English (U.S.) localization, behaves identically in every
+> region, and has no geo-gated features or content. It makes no network requests, so it cannot
+> vary by region.
+
+### 6. Regulated industry or protected third-party material
+
+> Neither applies.
+>
+> The app is not in a regulated industry. It facilitates no transactions, handles no money, and
+> transmits nothing.
+>
+> All content is original. The sample profiles are fictional characters written for this app. There
+> is no licensed media: no stock photography, no third-party fonts (the app uses the iOS system
+> font stack), no music or video. Avatars are gradients generated from the person's name at
+> runtime. This matches the "No" answer given under Content Rights.
+
+### On user-generated content, reporting and blocking
+
+Worth stating up front, because the rejection letter asks about it:
+
+> Users create profiles on their own device. Nothing a user writes or photographs is transmitted
+> anywhere — not to a server, not to another user, not to another device. There is no feed, no
+> messaging and no shared content, so there is no user-to-user content that could require a
+> reporting or blocking mechanism.
+>
+> On account deletion: the app has no account system, so Guideline 5.1.1(v) does not apply. Even
+> so, **Settings → Reset everything** erases every profile, photo and match from the device.
+
+### The screen recording
+
+Record on a physical iPhone, not the simulator. Settings → Control Centre → add **Screen
+Recording**, then swipe down from the top right and tap ⏺.
+
+Start from the home screen and tap the app icon, so the recording opens with the launch. Then, in
+one unbroken take of about two minutes:
+
+1. Tap "I'm 18 or older", type a name, tap "Just show me — load a sample family"
+2. Swipe a card right and a card left
+3. Tap a card to open the full profile, scroll through the compatibility breakdown, close it
+4. Tap "Maya" in the row at the top, swipe right on the first card — showing it does **not** match
+5. Tap the avatar at the top right, switch into Maya's account
+6. Open **Activity** so the "… thinks you should match with …" notification is on screen
+7. Open **Picks**, swipe the card right, show the match
+8. **People** tab — open a profile, show family and friends
+9. **Events** tab — tap "Find someone for this" on the double date
+10. Add a photo to a profile from the camera roll, so the system permission prompt is visible
+11. **Settings → Reset everything**, to show data deletion
+
+Upload it to YouTube as **unlisted** (not private — a reviewer must be able to open it without a
+Google account) or to iCloud Drive with a public link, and put the link in the reply.
