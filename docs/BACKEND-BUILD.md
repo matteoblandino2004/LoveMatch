@@ -36,6 +36,37 @@ The anon key is designed to ship inside the app — it grants nothing on its own
 every table is behind row-level security. The `service_role` key is the opposite: it
 bypasses RLS entirely. It must never go in `.env.local`, in this repo, or in a chat.
 
+## What it costs
+
+Read off supabase.com/pricing on 16 November 2026. Check it again before you pay — these
+move.
+
+**Free — $0/month.** 50,000 monthly active users, 500 MB database, 1 GB file storage,
+5 GB egress, unlimited API requests. Auth is included (unlimited users, OAuth, multi-factor).
+Realtime is included: 200 concurrent connections, 2 million messages a month. That is
+genuinely enough to build the whole thing and launch to a few hundred people.
+
+Two catches, both of which matter:
+
+- **Free projects are paused after 1 week of inactivity.** A paused project means the app
+  is down until someone clicks unpause. Fine while building, fatal in production.
+- Limit of 2 active projects.
+
+**Pro — from $25/month.** 100,000 MAU (then $0.00325 each), 8 GB disk, 100 GB file storage,
+250 GB egress, email support, daily backups kept 7 days. No pausing. This is the real
+number for a live app, and it is the bill you take on the day strangers rely on it.
+
+Everything else:
+
+| | |
+|---|---|
+| Apple Developer | $99/yr — already paying |
+| Push notifications (APNs) | free, included with the developer account |
+| Custom SMTP for auth emails | included on Free |
+| A domain | ~$12/yr, optional |
+
+**So: $0 while building, $25/month the day it goes live.**
+
 ## The consent design, in one paragraph
 
 Locally, making a profile for your sister is harmless — it never leaves your phone. On a
